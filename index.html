@@ -284,22 +284,40 @@ function billboard(img, height, x, z, shadowScale) {
   const w = height * img.width / img.height;
   const geo = new THREE.PlaneGeometry(w, height); geo.translate(0, height / 2, 0);
   const mat = new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.08, roughness: 0.85, metalness: 0, envMapIntensity: 0.2, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.18 });
-  const m = new THREE.Mesh(geo, mat); m.position.set(x, 0, z);
-  scene.add(m); billboards.push(m);
-  contactShadow(w * shadowScale, w * shadowScale * 0.55, x, z + 0.02, 0.75);
-  return m;
+  const m = new THREE.Mesh(geo, mat);
+  billboards.push(m);
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const sh = contactShadow(w * shadowScale, w * shadowScale * 0.55, 0, 0.02, 0.75); scene.remove(sh);
+  g.add(sh, m); scene.add(g);
+  return g;
 }
 function decal(img, width, x, z, rot) {
   const t = texFromImage(img);
   const h = width * img.height / img.width;
   const geo = new THREE.PlaneGeometry(width, h);
   const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.08, roughness: 0.6, envMapIntensity: 0.4, emissive: 0xffffff, emissiveMap: t, emissiveIntensity: 0.15 }));
-  m.rotation.set(-Math.PI / 2, 0, rot); m.position.set(x, 0.006, z);
+  m.rotation.set(-Math.PI / 2, 0, rot); m.position.set(0, 0.006, 0);
   // a hard offset shadow, the way a lamp overhead throws one
   const s = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaTest: 0.08, color: 0x000000, opacity: 0.55, depthWrite: false }));
-  s.rotation.copy(m.rotation); s.position.set(x + 0.025, 0.003, z + 0.035); s.scale.set(1.02, 1.04, 1);
-  scene.add(s, m);
-  return m;
+  s.rotation.copy(m.rotation); s.position.set(0.025, 0.003, 0.035); s.scale.set(1.02, 1.04, 1);
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.add(s, m); scene.add(g);
+  return g;
+}
+const props = {};
+/* portrait phones see a narrow slice of the desk, so the props move in close around the book */
+function layoutProps() {
+  if (!props.succulent) return;
+  const portrait = innerWidth / innerHeight < 1;
+  const place = (g, x, z, sc = 1) => { g.position.set(x, 0, z); g.scale.setScalar(sc); };
+  if (portrait) {
+    place(props.succulent, -0.05, -1.12, 0.8);
+    place(props.coffee, 1.72, -1.05, 0.85);
+    place(props.pencil, 0.95, 1.08, 0.9); props.pencil.rotation.y = 0.35;
+  } else {
+    place(props.succulent, -1.22, -0.42);
+    place(props.coffee, 2.45, -0.5);
+    place(props.pencil, -1.15, 0.86); props.pencil.rotation.y = 0;
+  }
 }
 
 /* =====================================================================
@@ -725,9 +743,10 @@ async function boot() {
   await fontsReady;
 
   buildDesk(wood, woodN);
-  billboard(succulent, 0.66, -1.22, -0.42, 1.05);
-  billboard(coffee, 0.62, 2.45, -0.5, 1.15);
-  decal(pencil, 1.15, -1.15, 0.86, -0.12);
+  props.succulent = billboard(succulent, 0.66, -1.22, -0.42, 1.05);
+  props.coffee = billboard(coffee, 0.62, 2.45, -0.5, 1.15);
+  props.pencil = decal(pencil, 1.15, -1.15, 0.86, -0.12);
+  layoutProps();
 
   const clothTile = texFromImage(cloth); clothTile.wrapS = clothTile.wrapT = THREE.RepeatWrapping; clothTile.repeat.set(2.4, 1.6);
   const tex = { cover: coverTexture(), coverBack: coverBackTexture(), contents: contentsTexture(), end: endTexture(), works: imgs.map(workTexture), clothTile };
@@ -755,6 +774,7 @@ function resize() {
   const big = Math.abs(innerWidth - lastW) > 80 || Math.abs(innerHeight - lastH) > 160;
   lastW = innerWidth; lastH = innerHeight;
   if (N) moveCamera(cam.name, big ? 0.6 : 0.01);
+  layoutProps();
 }
 let last = performance.now();
 addEventListener('resize', resize);
