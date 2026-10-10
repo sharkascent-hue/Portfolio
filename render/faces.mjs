@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+import fs from 'fs';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+page.on('pageerror', e => console.log('ERR', e.message));
+await page.goto('http://localhost:8000/pages.html', { waitUntil: 'networkidle' });
+await page.waitForFunction(() => window.faces, null, { timeout: 60000 });
+const faces = await page.evaluate(() => window.faces);
+for (const [k, data] of Object.entries(faces)) fs.writeFileSync(`render/faces/${k}.png`, Buffer.from(data.split(',')[1], 'base64'));
+console.log(Object.keys(faces).length, 'faces written');
+await browser.close();

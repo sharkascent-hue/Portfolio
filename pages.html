@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AlmLab book — page face renderer</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{background:#111;color:#ccc;font:13px monospace;padding:16px}canvas{width:384px;height:216px;margin:4px;background:#000}</style>
+</head>
+<body>
+<p id="status">rendering…</p>
+<div id="out"></div>
+<script type="module">
+/* Renders every page face of the book as a 16:9 image so an offline renderer can
+   texture the leaves with exactly what the web book shows. Open via a web server. */
+const WORKS = [
+  { n:'01', title:'AlmLab Instant Lead Reply', img:'img/reply.jpg' },
+  { n:'02', title:'All Leaders Follow',        img:'img/allleaders.jpg' },
+  { n:'03', title:'Pentium Logistics',         img:'img/pentium.jpg' },
+  { n:'04', title:'Mejia Landscaping',         img:'img/mejia.jpg' },
+  { n:'05', title:'Big Bear Planetariums',     img:'img/bigbear.png' },
+  { n:'06', title:'Five Star Home Improvement',img:'img/fivestar.jpg' },
+  { n:'07', title:'Evolve Gym Equipment',      img:'img/evolve.jpg' },
+  { n:'08', title:'Attics R Us',               img:'img/attics.jpg' },
+  { n:'09', title:'Quality Fencing',           img:'img/qualityfencing.jpg' },
+  { n:'10', title:'Diamond Flooring',          img:'img/diamond.jpg' },
+  { n:'11', title:'AL Fitness & Coaching',     img:'img/alfitness.jpg' },
+  { n:'12', title:'15-50 Cabins',              img:'img/cabins.jpg' },
+  { n:'13', title:'Manchester Paving & Patios',img:'img/manchester.jpg' },
+  { n:'14', title:'SH Interior',               img:'img/shinterior.jpg' },
+  { n:'15', title:'Omni Renovations',          img:'img/omni.jpg' },
+  { n:'16', title:'Seattle Core Masonry',      img:'img/seattle.jpg' },
+  { n:'17', title:'Floor Trade Ireland',       img:'img/floortrade.jpg' },
+  { n:'18', title:'Supreme Landscapes',        img:'img/supreme.jpg' },
+];
+const W = 1536, H = 864;
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(src)); i.src = src; });
+let logoImg, clothImg;
+function canvas() { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; }
+function grain(g, alpha) {
+  const id = g.getImageData(0, 0, W, H), d = id.data, k = alpha * 255;
+  for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - .5) * k; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  g.putImageData(id, 0, 0);
+}
+function drawLogo(g, x, y, h, color) {
+  const w = h * logoImg.width / logoImg.height;
+  const o = document.createElement('canvas'); o.width = Math.ceil(w); o.height = Math.ceil(h);
+  const og = o.getContext('2d'); og.drawImage(logoImg, 0, 0, w, h);
+  og.globalCompositeOperation = 'source-in'; og.fillStyle = color; og.fillRect(0, 0, w, h);
+  g.drawImage(o, x, y); return w;
+}
+function clothFill(g) {
+  const p = g.createPattern(clothImg, 'repeat');
+  g.save(); g.scale(1.6, 1.6); g.fillStyle = p; g.fillRect(0, 0, W / 1.6, H / 1.6); g.restore();
+  g.fillStyle = 'rgba(0,0,0,.72)'; g.fillRect(0, 0, W, H);
+  const v = g.createRadialGradient(W * .5, H * .45, 100, W * .5, H * .45, 1100);
+  v.addColorStop(0, 'rgba(255,255,255,.05)'); v.addColorStop(1, 'rgba(0,0,0,.3)');
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+}
+function paper(g) { g.fillStyle = '#f6f5f0'; g.fillRect(0, 0, W, H); grain(g, 0.028); }
+const faces = {};
+function cover() {
+  const c = canvas(), g = c.getContext('2d'); clothFill(g);
+  const h = 92, w = h * logoImg.width / logoImg.height;
+  g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 2; g.shadowOffsetY = 1;
+  drawLogo(g, (W - w) / 2, (H - h) / 2 - 10, h, '#f2f2f2'); g.shadowColor = 'transparent';
+  g.fillStyle = 'rgba(255,255,255,.4)'; g.font = '500 22px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  g.fillText('PORTFOLIO  ·  2026', W / 2, H - 90);
+  faces['cover'] = c;
+}
+function coverBack() {
+  const c = canvas(), g = c.getContext('2d'); clothFill(g);
+  const h = 44, w = h * logoImg.width / logoImg.height;
+  drawLogo(g, (W - w) / 2, H - 130, h, 'rgba(255,255,255,.75)');
+  g.fillStyle = 'rgba(255,255,255,.35)'; g.font = '400 20px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  g.fillText('almlabmarketing.com', W / 2, H - 60);
+  faces['coverback'] = c;
+}
+function contents() {
+  const c = canvas(), g = c.getContext('2d'); paper(g);
+  const pad = 110;
+  drawLogo(g, pad, 76, 34, '#141414');
+  g.fillStyle = '#141414'; g.font = '500 74px Poppins, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.letterSpacing = '-3px'; g.fillText('Contents', pad, 250); g.letterSpacing = '0px';
+  g.fillStyle = 'rgba(20,20,20,.5)'; g.font = '400 20px "JetBrains Mono", monospace';
+  g.fillText('18 projects', pad, 292);
+  const colX = [600, 1070], top = 190, step = 56;
+  WORKS.forEach((w, i) => {
+    const col = Math.floor(i / 9), row = i % 9, x = colX[col], y = top + row * step;
+    g.fillStyle = 'rgba(20,20,20,.45)'; g.font = '500 19px "JetBrains Mono", monospace'; g.fillText(w.n, x, y);
+    g.fillStyle = '#1a1a1a'; g.font = '500 25px Poppins, sans-serif'; g.letterSpacing = '-0.5px'; g.fillText(w.title, x + 48, y); g.letterSpacing = '0px';
+    g.fillStyle = 'rgba(20,20,20,.08)'; g.fillRect(x, y + 15, 410, 2);
+  });
+  g.fillStyle = 'rgba(20,20,20,.45)'; g.font = '400 20px "JetBrains Mono", monospace';
+  g.fillText('AlmLab — the formula for growth', pad, H - 64);
+  faces['contents'] = c;
+}
+function end() {
+  const c = canvas(), g = c.getContext('2d'); paper(g);
+  const h = 96, w = h * logoImg.width / logoImg.height;
+  drawLogo(g, (W - w) / 2, (H - h) / 2 - 30, h, '#141414');
+  g.fillStyle = 'rgba(20,20,20,.55)'; g.font = '400 22px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  g.fillText('WEBSITES  ·  ADS  ·  SOCIAL  ·  SEO', W / 2, H / 2 + 70);
+  g.fillStyle = '#141414'; g.font = '500 24px Poppins, sans-serif';
+  g.fillText('almlabmarketing.com', W / 2, H - 70);
+  faces['end'] = c;
+}
+function work(img, key) {
+  const c = canvas(), g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  const ir = img.width / img.height, pr = W / H;
+  let sw, sh, sx, sy;
+  if (ir > pr) { sh = img.height; sw = sh * pr; sx = (img.width - sw) / 2; sy = 0; } else { sw = img.width; sh = sw / pr; sx = 0; sy = 0; }
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  faces[key] = c;
+}
+async function main() {
+  await Promise.all([document.fonts.load('500 74px Poppins'), document.fonts.load('500 25px Poppins'), document.fonts.load('400 20px "JetBrains Mono"')]).catch(() => {});
+  [logoImg, clothImg] = await Promise.all([loadImg('img/logo.png'), loadImg('img/cloth.jpg')]);
+  const imgs = await Promise.all(WORKS.map(w => loadImg(w.img)));
+  cover(); coverBack(); contents(); end();
+  imgs.forEach((img, i) => work(img, `work${String(i + 1).padStart(2, '0')}`));
+  const out = document.getElementById('out');
+  for (const [k, c] of Object.entries(faces)) { c.title = k; out.appendChild(c); }
+  window.faces = Object.fromEntries(Object.entries(faces).map(([k, c]) => [k, c.toDataURL('image/png')]));
+  document.getElementById('status').textContent = `done: ${Object.keys(faces).length} faces`;
+}
+main();
+</script>
+</body>
+</html>
