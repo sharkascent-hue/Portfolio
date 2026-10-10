@@ -25,7 +25,7 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;overscroll-behavior:none}
-#gl{position:fixed;inset:0;display:block;touch-action:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 canvas{outline:none}
 
 /* ---------- nav ---------- */
@@ -37,7 +37,7 @@ canvas{outline:none}
 .cta:hover{transform:translateY(-1px);background:#f3f3f3}
 
 /* ---------- headline ---------- */
-.hero{position:fixed;left:36px;top:132px;z-index:9;max-width:620px;pointer-events:none;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+.hero{position:fixed;left:36px;top:clamp(84px,14vh,132px);z-index:9;max-width:620px;pointer-events:none;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
 .hero h1{margin:0;font:600 clamp(26px,3.6vw,46px)/1.06 var(--sans);letter-spacing:-.03em;text-wrap:balance}
 .hero p{margin:14px 0 0;font:400 13px/1.5 var(--sans);color:var(--muted);letter-spacing:-.005em}
 .hero.away{opacity:0;transform:translateY(-14px)}
