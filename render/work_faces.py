@@ -1,9 +1,10 @@
 """Build the printed project pages and the hover images from the screenshots in img/.
-usage (from the book folder): python3 render/work_faces.py
+usage (from the book folder): python3 render/work_faces.py 19     <- only rebuild project 19
+       python3 render/work_faces.py        <- rebuild all (overwrites the sharper 2x pages already there)
 - img/pages/workNN.webp: the top of each screenshot, 1536x864, lightly sharpened
 - img/<name>.jpg|png: screenshots narrower than 1230px are enlarged to 1230px wide for hover
 Best results come from 1440px-wide screenshots taken at 2x (see README)."""
-import os, re
+import os, re, sys
 from PIL import Image, ImageFilter
 src = open('index.html').read()
 works = re.findall(r"\{ n:'(\d\d)'.*?img:'(img/[^']+)'", src)
@@ -13,7 +14,9 @@ def face(im):
     if ir > pr: sw = im.height * pr; box = ((im.width - sw) / 2, 0, (im.width + sw) / 2, im.height)
     else: box = (0, 0, im.width, im.width / pr)
     return im.crop(tuple(round(v) for v in box))
+only = sys.argv[1:]
 for n, path in works:
+    if only and n not in only: continue
     im = Image.open(path).convert('RGB')
     f = face(im)
     soft = f.width < FW   # enlarged: sharpen more

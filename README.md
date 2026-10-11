@@ -19,7 +19,7 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 ## Easy changes (edit index.html and push)
 
 - **Projects, names, links, hover screenshots**: the `WORKS` list at the top of the script.
-- **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, wood brightness, hover scroll speed.
+- **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, wood darkness, page brightness, hover scroll speed.
 - **Pencil**: the `PENCIL` line — where it lies and its angle.
 - **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
   for laptops and phones. The camera works out its own position from these on every screen size.
@@ -32,9 +32,9 @@ Swipe or use the arrows to move one page at a time while zoomed in.
 
 ## A new project or a new screenshot
 
-1. Take a screenshot of the site 1440px wide, ideally at 2x and full page, and put it in `img/`.
+1. Take a screenshot of the site 1440px wide at 2x, full page, and put it in `img/`.
 2. Add it to `WORKS` in `index.html` and `pages.html`.
-3. Run `python3 render/work_faces.py` from this folder. It rebuilds the printed pages
+3. Run `python3 render/work_faces.py 19` from this folder, with the project's number. It rebuilds the printed pages
    (`img/pages/workNN.webp`) and enlarges small screenshots for the hover playback.
 
 The cover, contents and end pages come from `pages.html`: serve the folder
@@ -42,5 +42,12 @@ The cover, contents and end pages come from `pages.html`: serve the folder
 
 ## The desk
 
-The wood is drawn live on the graphics card (`WOOD_GLSL` in `index.html`), so it stays sharp on any screen.
-Its colours are the two `vec3` values in `buildDesk`; `CONFIG.desk` makes it brighter or darker.
+The desk is a scanned black oak veneer from Poly Haven (CC0, free to use), in `img/wood/`:
+`oak-3k.webp` for laptops, `oak-2k.webp` for phones, and `oak-normal.webp` for the surface detail.
+`CONFIG.desk` sets how dark it is, and `WOOD_TILE` sets how fine the grain looks.
+To try another wood, download its Diffuse and Normal (GL) maps from polyhaven.com and replace those files.
+
+## Colours of the pages
+
+`CONFIG.pageBrightness` sets how bright the printed sites are; 1 shows exactly the site's colours.
+Pages darken slightly as they lift during a turn, like real paper leaving the lamp light.

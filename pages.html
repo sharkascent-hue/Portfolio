@@ -45,6 +45,9 @@ function drawLogo(g, x, y, h, color) {
   const w = h * logoImg.width / logoImg.height;
   const o = document.createElement('canvas'); o.width = Math.ceil(w); o.height = Math.ceil(h);
   const og = o.getContext('2d'); og.drawImage(logoImg, 0, 0, w, h);
+  const id = og.getImageData(0, 0, o.width, o.height), d = id.data;   // drop the logo file's soft glow so it prints crisp
+  for (let i = 3; i < d.length; i += 4) d[i] = Math.max(0, Math.min(255, (d[i] - 110) * 2.6));
+  og.putImageData(id, 0, 0);
   og.globalCompositeOperation = 'source-in'; og.fillStyle = color; og.fillRect(0, 0, w, h);
   g.drawImage(o, x, y); return w;
 }
@@ -56,20 +59,28 @@ function clothFill(g) {
   v.addColorStop(0, 'rgba(255,255,255,.05)'); v.addColorStop(1, 'rgba(0,0,0,.3)');
   g.fillStyle = v; g.fillRect(0, 0, W, H);
 }
+function linen(g) {   // black book cloth drawn at full resolution: fine woven threads, no blurry photo
+  g.fillStyle = '#0c0c0e'; g.fillRect(0, 0, W, H);
+  for (let y = 0; y < H; y += 2) { g.fillStyle = `rgba(255,255,255,${0.010 + Math.random() * 0.016})`; g.fillRect(0, y, W, 1); }
+  for (let x = 0; x < W; x += 2) { g.fillStyle = `rgba(0,0,0,${0.06 + Math.random() * 0.08})`; g.fillRect(x, 0, 1, H); }
+  const v = g.createRadialGradient(W * .5, H * .45, 100, W * .5, H * .45, 1100);
+  v.addColorStop(0, 'rgba(255,255,255,.03)'); v.addColorStop(1, 'rgba(0,0,0,.25)');
+  g.fillStyle = v; g.fillRect(0, 0, W, H); grain(g, 0.03);
+}
 function paper(g) { g.fillStyle = '#0c0c0e'; g.fillRect(0, 0, W, H); const v = g.createRadialGradient(W * .5, H * .5, 100, W * .5, H * .5, 1000); v.addColorStop(0, 'rgba(255,255,255,.04)'); v.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = v; g.fillRect(0, 0, W, H); grain(g, 0.04); }
 const faces = {};
 function cover() {
-  const c = canvas(), g = c.getContext('2d'); clothFill(g);
-  const h = 92, w = h * logoImg.width / logoImg.height;
-  g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = 2; g.shadowOffsetY = 1;
-  drawLogo(g, (W - w) / 2, (H - h) / 2 - 10, h, '#f2f2f2'); g.shadowColor = 'transparent';
-  g.fillStyle = 'rgba(255,255,255,.4)'; g.font = '500 22px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  const c = canvas(), g = c.getContext('2d'); linen(g);
+  const h = 150, w = h * logoImg.width / logoImg.height;
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(logoImg, (W - w) / 2, (H - h) / 2 - 20, w, h);   // the logo in its own colours
+  g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '500 24px "JetBrains Mono", monospace'; g.textAlign = 'center';
   g.fillText('PORTFOLIO  ·  2026', W / 2, H - 90);
   faces['cover'] = c;
 }
 function coverBack() {
-  const c = canvas(), g = c.getContext('2d'); clothFill(g);
-  const h = 44, w = h * logoImg.width / logoImg.height;
+  const c = canvas(), g = c.getContext('2d'); linen(g);
+  const h = 56, w = h * logoImg.width / logoImg.height;
   drawLogo(g, (W - w) / 2, H - 130, h, 'rgba(255,255,255,.75)');
   g.fillStyle = 'rgba(255,255,255,.35)'; g.font = '400 20px "JetBrains Mono", monospace'; g.textAlign = 'center';
   g.fillText('almlabmarketing.com', W / 2, H - 60);

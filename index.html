@@ -137,9 +137,10 @@ const CONFIG = {
   flipSeconds: 0.78,       // one page turn
   cascadeGap: 0.06,        // seconds between leaves when jumping several pages
   cameraSeconds: 1.7,      // the dolly in when the book opens
-  bloom: { strength: 0.22, radius: 0.45, threshold: 0.92 },
+  bloom: { strength: 0.22, radius: 0.45, threshold: 0.98 },
+  pageBrightness: 0.93,    // how bright the printed sites are (1 = exactly the site's colours)
   lamp: 9,                 // the desk lamp: lights the wood, the book and casts the shadows
-  desk: 1.0,               // brightness of the wood
+  desk: 0.1,               // brightness of the wood (the texture is darkened by this)
   parallax: 0.018,         // how much the camera follows the mouse
   hoverScrollSpeed: 0.055, // page heights per second when a page plays on hover
 };
@@ -172,7 +173,8 @@ const small = Math.min(screen.width, screen.height) < 820 || matchMedia('(pointe
    ===================================================================== */
 const canvas = document.getElementById('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, small ? 2 : 2));
+const DPR = Math.min(devicePixelRatio, small ? 3 : 2);   // phones render at their full sharpness
+renderer.setPixelRatio(DPR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
@@ -182,7 +184,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(30, 1, 0.02, 20);
 
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: DPR >= 2.5 ? 2 : 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), small ? CONFIG.bloom.strength * 0.6 : CONFIG.bloom.strength, CONFIG.bloom.radius, small ? 0.92 : CONFIG.bloom.threshold);
@@ -233,42 +235,17 @@ function tex(src, { srgb = true, repeat = false } = {}) {
 }
 
 /* =====================================================================
-   DESK — dark wood drawn live on the GPU, and a pencil
+   DESK — scanned black oak, and a pencil
    ===================================================================== */
-/* The wood is drawn by the GPU at whatever resolution the screen has, so it never blurs.
-   Grain runs left to right; fine detail fades out with distance so it never shimmers. */
-const WOOD_GLSL = `
-uniform float woodTone;
-varying vec2 vWood;
-float wh(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-float wn(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(wh(i), wh(i + vec2(1, 0)), u.x), mix(wh(i + vec2(0, 1)), wh(i + vec2(1, 1)), u.x), u.y); }
-float wf(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * wn(p); p = p * 2.03 + 17.1; a *= 0.5; } return s; }
-float aa(float v, float x) { return mix(v, 0.5, clamp(fwidth(x) * 1.5, 0.0, 1.0)); }
-float lines(float r, float x, float halfw) {   // thin grain lines, each with its own strength and breaks
-  float id = floor(r), t = abs(fract(r) - 0.5), w = fwidth(r);
-  float l = 1.0 - smoothstep(halfw - w, halfw + w, t);
-  l *= (0.25 + 0.75 * wn(vec2(x * 5.0 + id * 7.31, id * 1.73))) * smoothstep(0.2, 0.65, wn(vec2(x * 16.0, id * 3.17)));
-  return mix(l, halfw * 0.9, clamp(w * 1.4 - 0.2, 0.0, 1.0));   // far away: average out instead of shimmering
-}
-float woodGrain(vec2 p) {
-  float warp = wf(vec2(p.x * 2.6, p.y * 3.0)) * 0.9 + wf(vec2(p.x * 0.7, p.y * 0.9)) * 2.6;
-  float coarse = lines(p.y * 240.0 + warp * 14.0, p.x, 0.12);
-  float fine = lines(p.y * 620.0 + warp * 36.0 + 0.37, p.x * 1.7, 0.08);
-  float tone = wf(vec2(p.x * 1.6, p.y * 9.0));
-  return clamp(0.8 * coarse + 0.3 * fine + 0.4 * tone - 0.15, 0.0, 1.0);
-}`;
-function buildDesk() {
-  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.38, metalness: 0, envMapIntensity: 0.08 });
-  mat.onBeforeCompile = (sh) => {
-    sh.uniforms.woodTone = { value: CONFIG.desk };
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWood;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWood = (modelMatrix * vec4(position, 1.0)).xz;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + WOOD_GLSL)
-      .replace('#include <map_fragment>', `float wg = woodGrain(vWood);
-        diffuseColor.rgb = mix(vec3(0.0024, 0.0023, 0.0024), vec3(0.036, 0.036, 0.039), wg) * woodTone;`)
-      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness + 0.3 * (1.0 - wg) - 0.1 * wg;');
-  };
+const WOOD_TILE = 0.7;   // metres of desk one copy of the wood texture covers: smaller = finer grain
+/* Black oak veneer, a scanned CC0 texture from Poly Haven (polyhaven.com/a/black_oak_veneer), 1 m per tile.
+   Lit by the lamp, so the grain catches a soft sheen like a real lacquered desk. */
+function buildDesk([map, normalMap]) {
+  for (const t of [map, normalMap]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4 / WOOD_TILE, 3 / WOOD_TILE); t.offset.set(0.37, 0.21); }
+  const mat = new THREE.MeshStandardMaterial({
+    map, normalMap, normalScale: new THREE.Vector2(0.5, 0.5),
+    color: new THREE.Color(CONFIG.desk, CONFIG.desk, CONFIG.desk), roughness: 0.8, metalness: 0, envMapIntensity: 0.12,
+  });
   const desk = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), mat);
   desk.rotation.x = -Math.PI / 2; desk.receiveShadow = true;
   scene.add(desk);
@@ -319,8 +296,18 @@ function leafGeometry(w, d) {
   g.computeVertexNormals();
   return g;
 }
-const screenMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.62, 0.62, 0.62), color: new THREE.Color(0.3, 0.3, 0.3), roughness: 0.85, metalness: 0, envMapIntensity: 0.15 });
-const coverMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.5, 0.5, 0.5), roughness: 0.8, metalness: 0, envMapIntensity: 0.08, color: new THREE.Color(0.06, 0.06, 0.06) });   // black cloth, the printed logo reads white
+/* pages show the site's true colours (they glow like a screen, no grey sheen); as a page lifts and
+   curls away from flat it darkens, the way a real sheet turns out of the lamp light */
+const pageShade = (sh) => {
+  sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+    float facing = clamp(dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)), 0.0, 1.0);
+    totalEmissiveRadiance *= 0.42 + 0.58 * facing * facing;`);
+};
+const screenMat = (map) => {
+  const m = new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(CONFIG.pageBrightness, CONFIG.pageBrightness, CONFIG.pageBrightness), color: new THREE.Color(0.1, 0.1, 0.1), roughness: 1, metalness: 0, envMapIntensity: 0 });
+  m.onBeforeCompile = pageShade; return m;
+};
+const coverMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.8, 0.8, 0.8), roughness: 0.8, metalness: 0, envMapIntensity: 0.08, color: new THREE.Color(0.06, 0.06, 0.06) });   // black cloth, the printed logo reads white
 
 const ease3 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 class Leaf {
@@ -540,7 +527,10 @@ async function startHover(f) {
   if (!work) return;
   hover = { ...f, work, start: performance.now(), base: f.leaf.mesh.material[f.face].map };   // map and emissiveMap are the same image
   let t = fullTex.get(work.img);
-  if (!t) { t = await tex(work.img); fullTex.set(work.img, t); }
+  if (!t) {
+    t = await tex(work.img); fullTex.set(work.img, t);
+    while (fullTex.size > 3) { const [k, old] = fullTex.entries().next().value; if (old === hover?.tex) break; old.dispose(); fullTex.delete(k); }   // keep GPU memory low on phones
+  }
   if (!hover || hover.work !== work) return;
   const im = t.image, win = Math.min(1, (im.width * PAGE_D / PAGE_W) / im.height);
   hover.tex = t; hover.win = win;
@@ -674,11 +664,12 @@ function intro() {
    ===================================================================== */
 const pageTex = (n) => tex(`img/pages/${n}.webp`);
 async function boot() {
-  const [cover, coverback, contents, end, ...works] = await Promise.all([
+  const [wood, cover, coverback, contents, end, ...works] = await Promise.all([
+    Promise.all([tex(small ? 'img/wood/oak-2k.webp' : 'img/wood/oak-3k.webp'), tex('img/wood/oak-normal.webp', { srgb: false })]),
     pageTex('cover'), pageTex('coverback'), pageTex('contents'), pageTex('end'),
     ...WORKS.map((w, i) => pageTex('work' + String(i + 1).padStart(2, '0'))),
   ]);
-  buildDesk();
+  buildDesk(wood);
   buildBook({ cover, coverback, contents, end, works });
   fit(); Object.assign(cam, rigNow());
   leaves.forEach(l => l.update()); placeCamera(0.016);
