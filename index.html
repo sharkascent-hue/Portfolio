@@ -80,7 +80,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 
 <section class="hero" id="hero">
   <h1><span>Interactive Portfolio</span><span>that you can explore</span></h1>
-  <p id="heroSub">Click on pages to view works, hover to see how they act in motion</p>
+  <p id="heroSub">Click a page to visit the site, scroll over it to explore</p>
 </section>
 
 <div class="hint" id="hint"><i></i> <span>Click the book to open it</span></div>
@@ -172,11 +172,11 @@ const FRAMING = {
 };
 /* PROPS — where things sit on the desk: metres from the book's spine (x right, z towards you), turn in degrees */
 const PROPS = {
-  pencil:   { x: -0.19, z: 0.165, turn: 28 },
-  cards:    { x: 0.29, z: 0.17, turn: -14,      // two AlmLab business cards, fanned: click to flip, click again to get in touch
+  pencil:   { x: -0.15, z: 0.14, turn: 28 },
+  cards:    { x: 0.22, z: 0.145, turn: -14,     // two AlmLab business cards, fanned: click to flip, click again to get in touch
               phone: { x: 0.17, z: 0.17 } },
-  logo:     { x: 0.25, z: -0.24, width: 0.2, turn: -8, lean: 14, glow: 0.22, startOn: true,   // the AlmLab light-up sign standing on the desk;
-              phone: { x: 0.08, z: -0.22, width: 0.18 } },   // lean: degrees it tips back; glow: the soft white light on the wood; startOn: lit when the page loads
+  logo:     { x: 0.13, z: -0.2, width: 0.14, turn: -6, lean: 14, glow: 0.07, startOn: true,   // the AlmLab light-up sign standing on the desk;
+              phone: { x: 0.06, z: -0.2, width: 0.13 } },   // lean: degrees it tips back; glow: the soft white light on the wood; startOn: lit when the page loads
 };
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
@@ -399,8 +399,8 @@ function logoLight(data) {
   g.translate(256, 128); g.scale(2, 1);
   const gr = g.createRadialGradient(0, 0, 4, 0, 0, 120); gr.addColorStop(0, 'rgba(235,245,240,0.5)'); gr.addColorStop(0.5, 'rgba(235,245,240,0.12)'); gr.addColorStop(1, 'rgba(235,245,240,0)');
   g.fillStyle = gr; g.fillRect(-128, -128, 256, 256);
-  const pool = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.75), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
-  pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.002, 0.3); pool.renderOrder = 2;
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
+  pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.002, 0.2); pool.renderOrder = 2;
   const grp = new THREE.Group(); grp.add(pool, tilt, contactShadow(1.1, 0.16, 0.7)); grp.children[2].position.set(0, 0.001, 0);
   scene.add(grp);
   logoRig = { grp, faces, pool, level: 0, on: false };
@@ -462,7 +462,9 @@ const pageShade = (sh) => {
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
     float facing = clamp(dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)), 0.0, 1.0);
     float gutter = mix(0.62, 1.0, smoothstep(0.0, 0.11, vGut)) * mix(1.0, 0.88, smoothstep(0.93, 1.0, vGut));   // paper dips into the spine
-    totalEmissiveRadiance *= (0.42 + 0.58 * facing * facing) * gutter;`)
+    totalEmissiveRadiance *= (0.42 + 0.58 * facing * facing) * gutter;
+    float lum = dot(totalEmissiveRadiance, vec3(0.299, 0.587, 0.114));
+    totalEmissiveRadiance *= 1.0 - 0.16 * smoothstep(0.62, 0.95, lum);   // near-white areas sit a touch lower, so they don't glare`)
     .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
     float flatPart = smoothstep(0.12, 0.24, vGut);   // the curve into the spine stays matte: no glint, no haze
     #ifdef USE_CLEARCOAT
@@ -963,7 +965,7 @@ document.getElementById('next').addEventListener('click', () => step(1));
    ===================================================================== */
 const hero = document.getElementById('hero'), bar = document.getElementById('bar'), hint = document.getElementById('hint');
 const linkL = document.getElementById('linkL'), linkR = document.getElementById('linkR');
-if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, tap a page to zoom in, drag up or down on a page to scroll it'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
+if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, tap a page to zoom in, drag on a page to explore'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
 function hideHint() { hint.classList.add('off'); }
 let zoomHinted = false, hintTimer = 0;
 function flashHint(text) {
