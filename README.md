@@ -48,12 +48,16 @@ Swipe or use the arrows to move one page at a time while zoomed in.
 The cover, contents and end pages come from `pages.html`: serve the folder
 (`python3 -m http.server 8765`), run `node render/faces.mjs`, then convert the PNGs to `img/pages/*.webp`.
 
-## Moving heroes
+## Moving pages
 
-A project with `hero: 'img/video/<name>.mp4'` in `WORKS` shows that video on its page whenever the page is open,
-and rests on it for `CONFIG.heroHold` seconds before scrolling down the site. The loops are recorded frame by frame
-from the live sites (1440x810, 24 fps) and their ends crossfade into their starts, so they loop without a jump.
-To record a new one, add the site to `render/hero/rec.mjs`, run it, then `render/hero/enc.sh <name>`.
+Every open page plays like the real site loading, on phones and laptops:
+1. `intro` (optional): the site's opening animation, recorded from its very first frame, played once as the page opens.
+2. `hero` (optional): a 6.5-second loop of the moving hero, shown while the page rests at the top for `CONFIG.heroHold` seconds.
+3. Then it scrolls down the site and back up, over and over. Drag up or down on a page (phones) or use the mouse wheel over it (laptops) to scroll it yourself.
+
+The clips are in `img/video/`, recorded frame by frame from the live sites at 1440x810 and 24 fps.
+To record new ones: add the site to `render/hero/rec.mjs` (hero loop) and `render/hero/intro.mjs` (opening),
+run them, then `render/hero/enc.sh <name>` and `render/hero/enc_intro.sh` (see the top of each file).
 
 ## The desk
 
