@@ -13,6 +13,7 @@ gsap.min.js             GSAP 3.15 for camera moves, turns and the intro
 img/pages/*.webp        every printed page (cover, contents, 18 projects, end) and the two business cards
 img/logo-shape.json     the logo's outlines (letters, arrow, flask liquid, black backing) traced from img/logo.png for the 3D sign
 img/*.jpg|png           full-page screenshots that play on hover
+img/video/*.mp4         6.5-second looping videos of the sites with moving heroes
 render/                 page-face scripts (and the old Blender desk scripts)
 pages.html              draws the printed pages; render/faces.mjs captures them
 ```
@@ -24,7 +25,7 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 - **Things on the desk**: the `PROPS` block — where the pencil, the business cards and the AlmLab light-up sign sit.
   For the sign: `width`, `turn`, `lean` (how far it tips back), `glow` (the soft white light on the wood) and
   `startOn` (lit when the page loads). The sign and cards have their own spots on phones.
-  Click the sign to switch it on and off, the cards to flip them, the pencil to roll it.
+  Click the sign to switch it on and off, the top card to flip it over and back, the pencil to roll it forward and back.
 - **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
   for laptops and phones. The camera works out its own position from these on every screen size.
   `focus` is the zoomed-in single page on phones. `LENS` sets how long the lens is: lower means flatter, less looming.
@@ -33,6 +34,7 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 
 Tap the book to open it. Both pages of the open spread play their site on their own.
 Tap a project on the Contents page to jump straight to it.
+Drag up or down on a page to scroll down its site yourself (on a laptop, use the mouse wheel over the page).
 Tap a page to zoom in on it. Tap it again to visit.
 Swipe or use the arrows to move one page at a time while zoomed in.
 
@@ -45,6 +47,13 @@ Swipe or use the arrows to move one page at a time while zoomed in.
 
 The cover, contents and end pages come from `pages.html`: serve the folder
 (`python3 -m http.server 8765`), run `node render/faces.mjs`, then convert the PNGs to `img/pages/*.webp`.
+
+## Moving heroes
+
+A project with `hero: 'img/video/<name>.mp4'` in `WORKS` shows that video on its page whenever the page is open,
+and rests on it for `CONFIG.heroHold` seconds before scrolling down the site. The loops are recorded frame by frame
+from the live sites (1440x810, 24 fps) and their ends crossfade into their starts, so they loop without a jump.
+To record a new one, add the site to `render/hero/rec.mjs`, run it, then `render/hero/enc.sh <name>`.
 
 ## The desk
 

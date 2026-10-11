@@ -108,24 +108,25 @@ import { OutputPass } from './vendor/three-addons/postprocessing/OutputPass.js';
 
 /* =====================================================================
    THE WORK — order is the order in the book. `img` is the full-page
-   screenshot that plays on hover; img/pages/workNN.webp is the printed page.
+   screenshot that plays on hover; img/pages/workNN.webp is the printed page;
+   `hero` (optional) is a short looping video of a moving hero, shown on the page whenever it's open.
    ===================================================================== */
 const WORKS = [
-  { n:'01', title:'AlmLab Instant Lead Reply', url:'https://almlabmarketing.com/reply/', img:'img/reply.jpg' },
-  { n:'02', title:'All Leaders Follow',        url:'https://allleadersfollow.vercel.app/index.html', img:'img/allleaders.jpg' },
+  { n:'01', title:'AlmLab Instant Lead Reply', url:'https://almlabmarketing.com/reply/', img:'img/reply.jpg', hero:'img/video/reply.mp4' },
+  { n:'02', title:'All Leaders Follow',        url:'https://allleadersfollow.vercel.app/index.html', img:'img/allleaders.jpg', hero:'img/video/allleaders.mp4' },
   { n:'03', title:'Pentium Logistics',         url:'https://www.pentiumenvironmentallogistics.ie/', img:'img/pentium.jpg' },
-  { n:'04', title:'Mejia Landscaping',         url:'https://mejia-psi.vercel.app/', img:'img/mejia.jpg' },
-  { n:'05', title:'Big Bear Planetariums',     url:'https://www.bigbearplanetariums.ie/', img:'img/bigbear.jpg' },
-  { n:'06', title:'Five Star Home Improvement',url:'https://www.5starhomeimprovements.ie/', img:'img/fivestar.jpg' },
+  { n:'04', title:'Mejia Landscaping',         url:'https://mejia-psi.vercel.app/', img:'img/mejia.jpg', hero:'img/video/mejia.mp4' },
+  { n:'05', title:'Big Bear Planetariums',     url:'https://www.bigbearplanetariums.ie/', img:'img/bigbear.jpg', hero:'img/video/bigbear.mp4' },
+  { n:'06', title:'Five Star Home Improvement',url:'https://www.5starhomeimprovements.ie/', img:'img/fivestar.jpg', hero:'img/video/fivestar.mp4' },
   { n:'07', title:'Evolve Gym Equipment',      url:'https://www.evolvege.ie/', img:'img/evolve.jpg' },
-  { n:'08', title:'Attics R Us',               url:'https://www.atticsrus.ie/', img:'img/attics.jpg' },
+  { n:'08', title:'Attics R Us',               url:'https://www.atticsrus.ie/', img:'img/attics.jpg', hero:'img/video/attics.mp4' },
   { n:'09', title:'Quality Fencing',           url:'https://www.qualityfencing.ie/', img:'img/qualityfencing.jpg' },
-  { n:'10', title:'Diamond Flooring',          url:'https://www.diamondflooringdublin.ie/', img:'img/diamond.jpg' },
-  { n:'11', title:'AL Fitness & Coaching',     url:'https://www.alfitnessandcoaching.com/', img:'img/alfitness.jpg' },
+  { n:'10', title:'Diamond Flooring',          url:'https://www.diamondflooringdublin.ie/', img:'img/diamond.jpg', hero:'img/video/diamond.mp4' },
+  { n:'11', title:'AL Fitness & Coaching',     url:'https://www.alfitnessandcoaching.com/', img:'img/alfitness.jpg', hero:'img/video/alfitness.mp4' },
   { n:'12', title:'15-50 Cabins',              url:'https://www.1550.ie/', img:'img/cabins.jpg' },
   { n:'13', title:'Manchester Paving & Patios',url:'https://www.manchesterpavingandpatios.co.uk/', img:'img/manchester.jpg' },
   { n:'14', title:'SH Interior',               url:'https://www.irsh.ie/', img:'img/shinterior.jpg' },
-  { n:'15', title:'Omni Renovations',          url:'https://www.omnirenovations.ie/', img:'img/omni.jpg' },
+  { n:'15', title:'Omni Renovations',          url:'https://www.omnirenovations.ie/', img:'img/omni.jpg', hero:'img/video/omni.mp4' },
   { n:'16', title:'Seattle Core Masonry',      url:'https://www.chimneyrepairsseattle.com/', img:'img/seattle.jpg' },
   { n:'17', title:'Floor Trade Ireland',       url:'https://www.floortradeireland.ie/', img:'img/floortrade.jpg' },
   { n:'18', title:'Supreme Landscapes',        url:'https://www.supremelandscapesdublin.ie/', img:'img/supreme.jpg' },
@@ -145,6 +146,7 @@ const CONFIG = {
   desk: 0.1,               // brightness of the wood (the texture is darkened by this)
   parallax: 0.018,         // how much the camera follows the mouse
   hoverScrollSpeed: 0.055, // page heights per second when a page plays on hover
+  heroHold: 5,             // seconds a playing page rests on its moving hero before scrolling down the site
 };
 
 /* =====================================================================
@@ -305,7 +307,7 @@ function rollPencil() {   // it rolls across the desk on its six faces, then set
   gsap.to(P, { spin: s0 + d * turns * Math.PI * 2, duration: 1.4, ease: 'power2.out', onUpdate: () => {
     const k = (P.spin - s0) / (turns * Math.PI * 2) * d;   // 0 → 1 of the roll
     P.grp.position.set(sx + Math.sin(a) * dist * k * d, P.grp.position.y, sz + Math.cos(a) * dist * k * d);
-    P.m.rotation.x = -P.spin;
+    P.m.rotation.x = P.spin;   // rolls the way it travels
     const f = (((P.spin % (Math.PI / 3)) + Math.PI / 3) % (Math.PI / 3)) - Math.PI / 6;   // a hexagon bumps up onto its edges
     P.m.position.y = P.ri * (1 / Math.cos(f) - 1);
   } });
@@ -328,7 +330,7 @@ function flipCard() {   // the top card lifts, turns over in the air and lands s
     .to(C.black.rotation, { x: C.flipped ? Math.PI : 0, duration: 0.6, ease: 'power2.inOut' }, 0.12)
     .to(C.black.position, { y, duration: 0.4, ease: 'bounce.out' }, 0.62);
 }
-/* two business cards, fanned, like the reel: click to flip, click again to get in touch */
+/* two business cards, fanned, like the reel: click to flip one over, click again to flip it back */
 const clickable = [];
 function businessCards(front, back) {
   const C = PROPS.cards, w = 0.085, h = 0.055, t = 0.0005, r = 0.0032;
@@ -347,11 +349,11 @@ function businessCards(front, back) {
   }
   geo.addGroup(start * 3, (p.count / 3 - start) * 3, cur);
   geo.rotateX(-Math.PI / 2); geo.computeVertexNormals();
-  const face = (map, gloss) => new THREE.MeshPhysicalMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.22, 0.22, 0.22), roughness: 0.55, clearcoat: gloss, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
+  const face = (map, gloss, glow) => new THREE.MeshPhysicalMaterial({ map, emissiveMap: map, emissive: new THREE.Color(glow, glow, glow), roughness: 0.6, clearcoat: gloss, clearcoatRoughness: 0.3, envMapIntensity: 0.6, color: new THREE.Color(glow > 0.1 ? 1 : 0.62, glow > 0.1 ? 1 : 0.62, glow > 0.1 ? 1 : 0.62) });
   const grp = new THREE.Group();
-  const edge = new THREE.MeshStandardMaterial({ color: 0xe9e7e1, roughness: 0.8 });   // each card: black logo side, white details side
-  const white = new THREE.Mesh(geo, [face(back, 0.1), edge, face(front, 0.35)]);
-  const black = new THREE.Mesh(geo, [face(front, 0.35), edge, face(back, 0.1)]);
+  const edge = new THREE.MeshStandardMaterial({ color: 0x9c9a95, roughness: 0.8 });   // each card: black logo side, white details side
+  const white = new THREE.Mesh(geo, [face(back, 0.1, 0.05), edge, face(front, 0.35, 0.22)]);
+  const black = new THREE.Mesh(geo, [face(front, 0.35, 0.22), edge, face(back, 0.1, 0.05)]);
   white.position.set(0.012, 0, 0.008); white.rotation.y = THREE.MathUtils.degToRad(-16);
   black.position.set(-0.01, t + 0.0001, -0.006); black.rotation.order = 'YXZ'; black.rotation.y = THREE.MathUtils.degToRad(9);   // flips over its own long edge
   for (const m of [white, black]) { m.castShadow = true; m.receiveShadow = true; m.userData.prop = 'cards'; clickable.push(m); }
@@ -487,6 +489,7 @@ class Leaf {
     this.from = 0; this.to = 0; this.p = 1; this.turn = 0; this.dirty = true;
     this.geo = leafGeometry(w, d);
     this.mesh = new THREE.Mesh(this.geo, [frontMat || screenMat(front), backMat || screenMat(back)]);
+    this.still = [this.mesh.material[0].map, this.mesh.material[1].map];   // the printed pages
     this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.userData.leaf = this;
     if (board !== null) {   // the board's edges: both long sides, the fore edge and the hinge edge
       const n = (SEGS + 1) * 4, idx = [];
@@ -576,8 +579,8 @@ function buildBook(T) {
   const full = N_LEAVES * LEAF_T + BOARD_T * 2;
   const mk = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; book.add(m); return m; };
   parts.spine = mk(new THREE.BoxGeometry(BOARD_T * 1.6, full, bd), cloth); parts.spine.position.set(-BOARD_T * 0.6, full / 2, 0);
-  parts.block = mk(new THREE.BufferGeometry(), edge); parts.block.userData.h = -1;
-  parts.blockL = mk(new THREE.BufferGeometry(), edge); parts.blockL.userData.h = -1;
+  parts.block = mk(new THREE.BufferGeometry(), edge, false); parts.block.userData.h = -1;   // the page blocks never cast shadows onto the page above (they streaked on phones)
+  parts.blockL = mk(new THREE.BufferGeometry(), edge, false); parts.blockL.userData.h = -1;
   parts.spineFull = full;
   parts.shR = softShadow(bw + 0.09, bd + 0.08, bw / 2, 0.75);
   parts.shL = softShadow(bw + 0.09, bd + 0.08, -bw / 2, 0.75);
@@ -617,7 +620,7 @@ function go(s) {
     gsap.killTweensOf(l);
     l.from = l.turn; l.to = i < s ? 1 : 0; l.p = 0;
     gsap.to(l, { p: 1, duration: reduceMotion ? 0.01 : CONFIG.flipSeconds, delay: k * CONFIG.cascadeGap, ease: 'none',
-      onUpdate: () => { l.dirty = true; }, onComplete: () => { busy = Math.max(0, busy - 1); l.dirty = true; l.update(); stacks(); if (!busy) playFocus(); } });
+      onUpdate: () => { l.dirty = true; }, onComplete: () => { busy = Math.max(0, busy - 1); l.dirty = true; l.update(); stacks(); if (!busy) { refreshHeroes(); playFocus(); } } });
   });
   spread = s;
   const open = s > 0 && s < SPREADS;
@@ -726,13 +729,42 @@ function faceAt(hit) {
   if (face === 1 && l.i !== spread - 1) return null;
   return { leaf: l, face, uv: hit.uv };
 }
+/* hero videos: one <video> per work that has one, made when first needed */
+const heroes = new Map();
+function heroFor(work) {
+  if (!work?.hero) return null;
+  let h = heroes.get(work.n);
+  if (!h) {
+    const v = document.createElement('video');
+    Object.assign(v, { src: work.hero, muted: true, loop: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' });
+    v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
+    const t = new THREE.VideoTexture(v); t.colorSpace = THREE.SRGBColorSpace;
+    h = { v, t, ready: false }; heroes.set(work.n, h);
+    v.addEventListener('playing', () => { if (!h.ready) { h.ready = true; refreshHeroes(); } }, { once: true });   // until its first frame, the page keeps its print
+    v.load();
+  }
+  return h;
+}
+const setFaceMap = (leaf, face, t) => { const m = leaf.mesh.material[face]; if (m.map !== t) { m.map = t; m.emissiveMap = t; m.needsUpdate = true; } };
+/* the open pages show their moving hero; every other page shows its print and its video sleeps */
+function refreshHeroes() {
+  const vis = opened ? [pageFace('left'), pageFace('right')].filter(Boolean) : [];
+  if (opened) for (const i of [spread, spread + 1]) for (const face of [0, 1]) { const w = i < N_LEAVES ? workOn(i, face) : null; if (w?.hero) heroFor(w); }   // load the next pages' videos ahead
+  for (const l of leaves) for (const face of [0, 1]) {
+    const w = workOn(l.i, face); if (!w?.hero) continue;
+    const shown = vis.some(f => f.leaf === l && f.face === face), pl = plays.find(q => q.leaf === l && q.face === face);
+    const h = shown ? heroFor(w) : heroes.get(w.n);
+    if (shown) { if (!pl) setFaceMap(l, face, h.ready ? h.t : l.still[face]); h.v.play().catch(() => {}); }
+    else if (h) { h.v.pause(); if (!pl) setFaceMap(l, face, l.still[face]); }
+  }
+}
 /* plays: pages currently showing their full site in motion (the hovered page on laptops, both pages on phones) */
 let plays = [];
 const playing = (f) => plays.some(pl => pl.leaf === f.leaf && pl.face === f.face);
 async function startHover(f) {
   const work = workOn(f.leaf.i, f.face);
   if (!work || playing(f)) return;
-  const pl = { ...f, work, start: performance.now(), base: f.leaf.mesh.material[f.face].map, live: true };   // map and emissiveMap are the same image
+  const pl = { ...f, work, start: performance.now(), base: f.leaf.still[f.face], live: true, hero: heroFor(work) };
   plays.push(pl);
   let t = fullTex.get(work.img);
   if (!t) {
@@ -746,7 +778,7 @@ async function startHover(f) {
   const im = t.image, win = Math.min(1, (im.width * PAGE_D / PAGE_W) / im.height);
   pl.tex = t; pl.win = win;
   t.repeat.set(1, win); t.offset.set(0, 1 - win);
-  const hm = f.leaf.mesh.material[f.face]; hm.map = t; hm.emissiveMap = t; hm.needsUpdate = true;
+  if (!pl.hero) setFaceMap(f.leaf, f.face, t);   // with a hero video, tickHover shows the video while it rests at the top
 }
 function stopHover() {
   for (const pl of plays) {
@@ -754,19 +786,37 @@ function stopHover() {
     if (pl.tex) { const m = pl.leaf.mesh.material[pl.face]; m.map = pl.base; m.emissiveMap = pl.base; m.needsUpdate = true; }
   }
   plays = [];
+  refreshHeroes();
   tip.classList.remove('on'); canvas.style.cursor = 'default';
 }
+const progressOf = (pl) => pl.tex && pl.win < 0.98 ? 1 - pl.tex.offset.y / (1 - pl.win) : 0;
+function scrollPlay(pl, cssPx) {   // move a playing page down (or up) its site by this many site pixels; it stops auto-scrolling
+  if (!pl?.tex || pl.win >= 0.98) return false;
+  const im = pl.tex.image, siteH = im.height * 1440 / im.width, travel = (1 - pl.win) * siteH;
+  pl.manual = THREE.MathUtils.clamp((pl.manual ?? progressOf(pl)) + cssPx / travel, 0, 1);
+  return true;
+}
+function playAt(cx, cy) { const f = faceAt(pick(cx, cy)); return f ? plays.find(pl => pl.leaf === f.leaf && pl.face === f.face) : null; }
 function tickHover() {
   for (const pl of plays) {
     if (!pl.tex) continue;
     const el = (performance.now() - pl.start) / 1000, t = pl.tex;
-    if (pl.win < 0.98) {
-      // scroll down the page, rest at the bottom, glide back up
-      const travel = 1 - pl.win, dur = travel / CONFIG.hoverScrollSpeed + 1.2;
-      const p = (el % (dur * 2)) / dur, k = p < 1 ? p : 2 - p;
+    if (pl.manual != null && pl.win < 0.98) t.offset.y += ((1 - pl.win) * (1 - pl.manual) - t.offset.y) * 0.25;   // eased, under the finger
+    else if (pl.win < 0.98) {
+      // rest at the top (on the moving hero if there is one), scroll down the site, rest, glide back up
+      const travel = 1 - pl.win, dur = travel / CONFIG.hoverScrollSpeed, hold = pl.hero ? CONFIG.heroHold : 1.2, rest = 1.2;
+      const c = el % (hold + dur + rest + dur);
+      const k = c < hold ? 0 : c < hold + dur ? (c - hold) / dur : c < hold + dur + rest ? 1 : 1 - (c - hold - dur - rest) / dur;
       const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
       t.offset.y = (1 - pl.win) * (1 - e);
-    } else {
+    }
+    if (pl.hero && pl.win < 0.98) {   // at the very top the page shows the hero in motion, as soon as it moves it shows the site
+      const atTop = t.offset.y > (1 - pl.win) * 0.997;
+      setFaceMap(pl.leaf, pl.face, atTop ? (pl.hero.ready ? pl.hero.t : pl.base) : t);
+      if (atTop) pl.hero.v.play().catch(() => {});
+      continue;
+    }
+    if (pl.win >= 0.98) {
       // short pages: a slow push-in
       const z = 1 - 0.06 * (0.5 - 0.5 * Math.cos(el * 0.5));
       t.repeat.set(z, z * pl.win); t.offset.set((1 - z) / 2, (1 - z * pl.win) / 2);
@@ -787,7 +837,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (prop && (!hit || prop.distance < hit.distance)) {
     const k = prop.object.userData.prop;
     stopHover(); canvas.style.cursor = 'pointer'; tip.classList.add('on');
-    tip.textContent = k === 'cards' ? (cardRig?.flipped ? 'Get in touch ↗' : 'Flip the card') : k === 'logo' ? (logoRig?.on ? 'Switch off' : 'Switch on') : 'Roll it';
+    tip.textContent = k === 'cards' ? (cardRig?.flipped ? 'Flip it back' : 'Flip the card') : k === 'logo' ? (logoRig?.on ? 'Switch off' : 'Switch on') : 'Roll it';
     tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; return;
   }
   const f = faceAt(hit);
@@ -800,7 +850,16 @@ canvas.addEventListener('pointermove', (e) => {
   tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px';
 }, { passive: true });
 canvas.addEventListener('pointerleave', () => { stopHover(); pointer.x = pointer.y = 0; });
-canvas.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now(), ly: e.clientY, play: opened ? playAt(e.clientX, e.clientY) : null, vertical: null }; });
+canvas.addEventListener('pointermove', (e) => {   // touch: drag up and down on a page to scroll its site
+  if (!downAt || e.pointerType === 'mouse' || !downAt.play) return;
+  const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y;
+  if (downAt.vertical == null && Math.hypot(dx, dy) > 10) downAt.vertical = Math.abs(dy) > Math.abs(dx);
+  if (!downAt.vertical) return;
+  const pageW = innerWidth * (focus ? 0.96 : 0.47);   // how wide the page is on screen
+  scrollPlay(downAt.play, -(e.clientY - downAt.ly) * 1440 / pageW * 1.3);
+  downAt.ly = e.clientY;
+}, { passive: true });
 canvas.addEventListener('pointerup', (e) => {
   if (!downAt) return;
   const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y, quick = performance.now() - downAt.t < 600;
@@ -811,7 +870,7 @@ canvas.addEventListener('pointerup', (e) => {
   const hit = pick(e.clientX, e.clientY), prop = pickProp(e.clientX, e.clientY);
   if (prop && (!hit || prop.distance < hit.distance)) {   // things on the desk
     const k = prop.object.userData.prop;
-    if (k === 'cards') { if (cardRig?.flipped) openSite(touchLink()); else flipCard(); }
+    if (k === 'cards') flipCard();
     else if (k === 'logo') toggleLogo(); else if (k === 'pencil') rollPencil();
     tip.classList.remove('on'); return;
   }
@@ -821,6 +880,8 @@ canvas.addEventListener('pointerup', (e) => {
     if (phoneMode() && focus !== 'left') { setFocus('left'); flashHint('Tap a project to jump to it'); return; }   // rows are tiny until zoomed in
     const n = contentsRow(f);
     if (n) { const i = n - 1, side = i % 2 ? 'left' : 'right'; go(Math.floor(i / 2) + 1 + (i % 2)); if (phoneMode()) { focus = side; moveCamera(0.9); ui(); } return; }
+    if (phoneMode()) flashHint('Tap a project name to jump to it');
+    return;   // a tap anywhere else on the contents page does nothing (it used to turn back and close the book)
   }
   if (phoneMode() && f) {   // phones: first tap zooms to the page, second tap acts on it
     const side = hit.point.x < 0 ? 'left' : 'right';
@@ -848,6 +909,8 @@ function openSite(url) { const a = document.createElement('a'); a.href = url; a.
 let wheelAcc = 0, wheelLock = 0;
 addEventListener('wheel', (e) => {
   e.preventDefault();
+  const over = opened ? playAt(e.clientX, e.clientY) : null;
+  if (over) { scrollPlay(over, e.deltaY * (e.deltaMode === 1 ? 40 : 1)); return; }   // over a playing page: scroll its site (never turn)
   const now = performance.now(); if (now < wheelLock) return;
   wheelAcc += e.deltaY;
   if (Math.abs(wheelAcc) > 60) { hideHint(); const d = Math.sign(wheelAcc); wheelAcc = 0; wheelLock = now + CONFIG.flipSeconds * 600; if (d > 0 && spread === SPREADS - 1) go(0); else go(spread + d); }
@@ -865,7 +928,7 @@ document.getElementById('next').addEventListener('click', () => step(1));
    ===================================================================== */
 const hero = document.getElementById('hero'), bar = document.getElementById('bar'), hint = document.getElementById('hint');
 const linkL = document.getElementById('linkL'), linkR = document.getElementById('linkR');
-if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, tap a page to zoom in, tap again to visit'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
+if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, tap a page to zoom in, drag up or down on a page to scroll it'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
 function hideHint() { hint.classList.add('off'); }
 let zoomHinted = false, hintTimer = 0;
 function flashHint(text) {
@@ -913,13 +976,13 @@ async function boot() {
   renderer.compile(scene, camera); composer.render();
   document.getElementById('loader').classList.add('off');
   intro();
-  window.almBook = { go, step, setFocus, flipCard, toggleLogo, rollPencil, get spread() { return spread; }, get focus() { return focus; } };
+  window.almBook = { go, step, setFocus, flipCard, toggleLogo, rollPencil, get plays() { return plays.map(p => ({ w: p.work.n, tex: !!p.tex, win: p.win, manual: p.manual })); }, playAt: (x, y) => !!playAt(x, y), get spread() { return spread; }, get focus() { return focus; } };
   last = performance.now(); requestAnimationFrame(loop);
 }
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  for (const l of leaves) l.update();
+  for (const l of leaves) { l.update(); l.mesh.castShadow = l.p < 1; }   // only a page in the air casts a shadow
   stacks();
   tickHover();
   placeCamera(dt);
