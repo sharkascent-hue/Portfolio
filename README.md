@@ -22,7 +22,7 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 - **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, wood darkness, page brightness, hover scroll speed.
 - **Things on the desk**: the `PROPS` block — where the pencil, the business cards and the lava lamp sit,
   their angle, the lamp's size and how much green light it throws (`glow`). The lamp has its own spot on phones
-  and fades away while the book is open. Click the lamp to switch it off, the cards to flip them, the pencil to roll it.
+  and stays on the desk while the book is open. Click the lamp to switch it off, the cards to flip them, the pencil to roll it.
 - **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
   for laptops and phones. The camera works out its own position from these on every screen size.
   `focus` is the zoomed-in single page on phones. `LENS` sets how long the lens is: lower means flatter, less looming.

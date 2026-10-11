@@ -173,8 +173,8 @@ const FRAMING = {
 const PROPS = {
   pencil:   { x: -0.19, z: 0.165, turn: 28 },
   cards:    { x: 0.29, z: 0.17, turn: -14 },    // two AlmLab business cards, fanned; clicking them opens Get in Touch
-  lavaLamp: { x: 0.25, z: -0.25, size: 0.72, glow: 0.04,   // neon-green lava lamp; glow = how much green light it throws on the desk
-              phone: { x: 0.21, z: -0.17 } },              // where it stands on phones (upright screens), above the book
+  lavaLamp: { x: 0.31, z: -0.19, size: 0.72, glow: 0.05,   // neon-green lava lamp; glow = how much green light it throws on the desk
+              phone: { x: 0.27, z: -0.17 } },              // where it stands on phones (upright screens), above the book
 };
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
@@ -370,7 +370,7 @@ function lavaLamp() {
   const pm = new THREE.PMREMGenerator(renderer), studioEnv = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();   // a bright studio, only for the chrome and glass
   const fadeable = [];
   const mat = (m) => { m.alphaHash = true; fadeable.push(m); return m; };
-  const chrome = mat(new THREE.MeshPhysicalMaterial({ color: 0xb4b8bf, metalness: 1, roughness: 0.07, envMap: studioEnv, envMapIntensity: 0.13, clearcoat: 0.8, clearcoatRoughness: 0.05 }));
+  const chrome = mat(new THREE.MeshPhysicalMaterial({ color: 0x060607, metalness: 0.1, roughness: 0.3, envMap: studioEnv, envMapIntensity: 0.22, clearcoat: 1, clearcoatRoughness: 0.03 }));   // gloss-black base and cap
   const HB = 0.125, H = 0.2, y0 = HB;
   const base = new THREE.Mesh(new THREE.LatheGeometry([
     new THREE.Vector2(0, 0), new THREE.Vector2(0.062, 0), new THREE.Vector2(0.063, 0.003), new THREE.Vector2(0.061, 0.006),
@@ -380,24 +380,29 @@ function lavaLamp() {
   for (let k = 0; k <= 60; k++) { const t = k / 60; prof.push(new THREE.Vector2(radius(t), y0 + t * H)); }
   prof.push(new THREE.Vector2(0.0, y0 + H));
   const glass = new THREE.Mesh(new THREE.LatheGeometry(prof, 128), mat(new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, transmission: 1, thickness: 0.004, roughness: 0.02, ior: 1.5, envMap: studioEnv, envMapIntensity: 0.55, specularIntensity: 1 })));
+    color: 0xffffff, transmission: 1, thickness: 0.004, roughness: 0.02, ior: 1.5, envMap: studioEnv, envMapIntensity: 1.1, specularIntensity: 1, depthWrite: false })));   // lets the glowing liquid show through
   const cap = new THREE.Mesh(new THREE.LatheGeometry([new THREE.Vector2(0, y0 + H - 0.004), new THREE.Vector2(0.0245, y0 + H - 0.004), new THREE.Vector2(0.0245, y0 + H + 0.002),
     new THREE.Vector2(0.013, y0 + H + 0.046), new THREE.Vector2(0.0125, y0 + H + 0.048), new THREE.Vector2(0, y0 + H + 0.048)], 128), chrome);
   // the wax: brightest where the bulb hits it from below, darker at its edges like a translucent solid
-  const waxMat = mat(new THREE.MeshPhysicalMaterial({ color: 0x0c4a1d, emissive: 0x22ff66, emissiveIntensity: 1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.06, envMap: studioEnv, envMapIntensity: 0.35 }));
+  const waxMat = mat(new THREE.MeshPhysicalMaterial({ color: 0x0c4a1d, emissive: 0x2bff6e, emissiveIntensity: 1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.06, envMap: studioEnv, envMapIntensity: 0.35 }));
   waxMat.onBeforeCompile = (sh) => {
+    sh.fragmentShader = '#define WAX_GLOW 1.6\n' + sh.fragmentShader;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vH;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvH = position.y;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vH;').replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       float face = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
-      totalEmissiveRadiance *= mix(1.7, 0.45, clamp((vH + 1.0) * 0.5, 0.0, 1.0)) * (0.45 + 0.55 * sqrt(face));`);
+      totalEmissiveRadiance *= WAX_GLOW * mix(1.9, 0.6, clamp((vH + 1.0) * 0.5, 0.0, 1.0)) * (0.5 + 0.5 * sqrt(face));`);
   };
   const wax = new MarchingCubes(56, waxMat, false, false, 70000);
   const R = 0.046; wax.isolation = 80; wax.position.y = y0 + H / 2; wax.scale.set(R, H / 2 * 0.98, R);
-  // the liquid: green-tinted, lit from the bottom and fading upwards
-  const liqGeo = new THREE.LatheGeometry(prof.slice(1, -1).map(v => new THREE.Vector2(v.x * 0.965, v.y)), 96), cols = [];
-  for (let i = 0; i < liqGeo.attributes.position.count; i++) { const t = (liqGeo.attributes.position.getY(i) - y0) / H, k = 0.3 + 0.7 * Math.pow(1 - t, 1.6); cols.push(0.14 * k, 0.9 * k, 0.4 * k); }
-  liqGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-  const liquid = new THREE.Mesh(liqGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  // the liquid glows from the bulb: brightest low down and where you look straight through it, fading to the glass edge
+  const liquid = new THREE.Mesh(new THREE.LatheGeometry(prof.slice(1, -1).map(v => new THREE.Vector2(v.x * 0.965, v.y)), 96), new THREE.ShaderMaterial({
+    uniforms: { glow: { value: 1 }, y0: { value: y0 }, h: { value: H } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying float vH; uniform float y0; uniform float h;
+      void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = -mv.xyz; vH = (position.y - y0) / h; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vV; varying float vH; uniform float glow;
+      void main() { float f = abs(dot(normalize(vN), normalize(vV))); float k = pow(f, 1.4) * mix(1.0, 0.22, smoothstep(0.0, 1.0, vH));
+        gl_FragColor = vec4(vec3(0.09, 0.62, 0.28) * k * glow, 1.0); }`,
+  }));
   const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.036, 64), new THREE.MeshBasicMaterial({ color: 0xd8ffe2, transparent: true, opacity: 0.55 }));
   bulb.rotation.x = -Math.PI / 2; bulb.position.y = y0 + 0.001;
   const light = new THREE.PointLight(0x2dff6a, P.glow, 0.5, 2); light.position.y = y0 + H * 0.3;
@@ -424,7 +429,7 @@ function tickLava(dt) {
   L.shadow.material.opacity = 0.55 * L.vis;
   L.clock += dt * (0.12 + 0.88 * L.level);   // the wax slows as it cools
   L.waxMat.emissiveIntensity = 0.04 + 0.96 * L.level; L.light.intensity = PROPS.lavaLamp.glow * L.level * L.vis;
-  L.liquid.material.opacity = (0.1 + 0.6 * L.level) * L.vis; L.bulb.material.opacity = 0.55 * L.vis;
+  L.liquid.material.uniforms.glow.value = (0.08 + 0.92 * L.level) * L.vis; L.bulb.material.opacity = 0.55 * L.vis;
   L.bulb.material.color.setRGB(0.04 + 0.8 * L.level, 0.05 + 0.95 * L.level, 0.04 + 0.85 * L.level);
   wax.reset();
   wax.addBall(0.5, 0.0, 0.5, 1.65 + 0.15 * Math.sin(L.clock * 0.3), 12);       // the warm pool at the bottom, gently swelling
@@ -643,7 +648,7 @@ function go(s) {
   spread = s;
   const open = s > 0 && s < SPREADS;
   if (!open && focus) { focus = null; if (open === opened) moveCamera(); }
-  if (open !== opened) { opened = open; moveCamera(); if (lava) gsap.to(lava, { vis: open ? 0 : 1, duration: open ? 0.7 : 1.2, delay: open ? 0 : 0.6, ease: 'power2.inOut', overwrite: 'auto' }); if (open && phoneMode() && !zoomHinted) { zoomHinted = true; showZoomHint(); } }
+  if (open !== opened) { opened = open; moveCamera(); if (open && phoneMode() && !zoomHinted) { zoomHinted = true; showZoomHint(); } }
   ui();
 }
 /* phones: zoom to one page, play it like a hover */
@@ -827,7 +832,7 @@ canvas.addEventListener('pointerup', (e) => {
   const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y, quick = performance.now() - downAt.t < 600;
   downAt = null;
   if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { hideHint(); step(dx < 0 ? 1 : -1); return; }   // swipe
-  if (Math.hypot(dx, dy) > 10 || !quick) return;
+  if (Math.hypot(dx, dy) > 18 || !quick) return;   // fingers wobble a little on a tap
   hideHint();
   const hit = pick(e.clientX, e.clientY), prop = pickProp(e.clientX, e.clientY);
   if (prop && (!hit || prop.distance < hit.distance)) {   // things on the desk
@@ -839,6 +844,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (!opened) { if (hit) go(spread === 0 ? 1 : 0); return; }
   const f = faceAt(hit);
   if (f && f.leaf.i === 0 && f.face === 1) {   // contents: a project row jumps straight to its page (and zooms to it on phones)
+    if (phoneMode() && focus !== 'left') { setFocus('left'); flashHint('Tap a project to jump to it'); return; }   // rows are tiny until zoomed in
     const n = contentsRow(f);
     if (n) { const i = n - 1, side = i % 2 ? 'left' : 'right'; go(Math.floor(i / 2) + 1 + (i % 2)); if (phoneMode()) { focus = side; moveCamera(0.9); ui(); } return; }
   }
@@ -854,15 +860,15 @@ canvas.addEventListener('pointerup', (e) => {
   step(e.clientX < innerWidth / 2 ? -1 : 1);
 });
 /* contents page: which project row was clicked (design px of the 1536×864 page) */
-function contentsRow(f) {
+function contentsRow(f) {   // generous: anywhere in the list snaps to the nearest project, so a fingertip always lands
   if (!f?.uv) return 0;
   const px = f.uv.x * 1536, py = (1 - f.uv.y) * 864;
   const colX = [600, 1070], top = 190, step = 56;
-  for (let i = 0; i < WORKS.length; i++) {
-    const x = colX[Math.floor(i / 9)], y = top + (i % 9) * step;
-    if (px >= x - 10 && px <= x + 420 && py >= y - 34 && py <= y + 22) return i + 1;   // the project's number
-  }
-  return 0;
+  if (py < top - 50 || py > top + 8 * step + 34) return 0;
+  const col = px >= colX[0] - 40 && px < colX[1] - 20 ? 0 : px >= colX[1] - 20 && px <= colX[1] + 470 ? 1 : -1;
+  if (col < 0) return 0;
+  const row = THREE.MathUtils.clamp(Math.round((py - (top - 8)) / step), 0, 8);
+  return col * 9 + row + 1;   // the project's number
 }
 function openSite(url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
 let wheelAcc = 0, wheelLock = 0;
@@ -887,7 +893,11 @@ const hero = document.getElementById('hero'), bar = document.getElementById('bar
 const linkL = document.getElementById('linkL'), linkR = document.getElementById('linkR');
 if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, tap a page to zoom in, tap again to visit'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
 function hideHint() { hint.classList.add('off'); }
-let zoomHinted = false;
+let zoomHinted = false, hintTimer = 0;
+function flashHint(text) {
+  hint.querySelector('span').textContent = text; hint.classList.add('up'); hint.classList.remove('off'); gsap.to(hint, { opacity: 1, duration: 0.4 });
+  clearTimeout(hintTimer); hintTimer = setTimeout(hideHint, 3500);
+}
 function showZoomHint() {   // phones: after the book opens, say how to zoom in
   setTimeout(() => { hint.querySelector('span').textContent = 'Tap a page to zoom in'; hint.classList.add('up'); hint.classList.remove('off'); gsap.to(hint, { opacity: 1, duration: 0.6 }); }, 1200);
 }
