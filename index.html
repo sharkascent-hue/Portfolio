@@ -106,6 +106,7 @@ import { RenderPass } from './vendor/three-addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from './vendor/three-addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './vendor/three-addons/postprocessing/OutputPass.js';
 import { MarchingCubes } from './vendor/three-addons/objects/MarchingCubes.js';
+import { RoomEnvironment } from './vendor/three-addons/environments/RoomEnvironment.js';
 
 /* =====================================================================
    THE WORK — order is the order in the book. `img` is the full-page
@@ -172,8 +173,8 @@ const FRAMING = {
 const PROPS = {
   pencil:   { x: -0.19, z: 0.165, turn: 28 },
   cards:    { x: 0.29, z: 0.17, turn: -14 },    // two AlmLab business cards, fanned; clicking them opens Get in Touch
-  lavaLamp: { x: 0.25, z: -0.25, size: 0.9, glow: 0.035,   // neon-green lava lamp; glow = how much green light it throws on the desk
-              phone: { x: 0.2, z: -0.3 } },              // where it stands on phones (upright screens), above the book
+  lavaLamp: { x: 0.25, z: -0.25, size: 0.72, glow: 0.04,   // neon-green lava lamp; glow = how much green light it throws on the desk
+              phone: { x: 0.21, z: -0.17 } },              // where it stands on phones (upright screens), above the book
 };
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
@@ -360,39 +361,54 @@ function businessCards(front, back) {
   grp.add(sh, white, black); grp.position.set(C.x, 0.0002, C.z); grp.rotation.y = THREE.MathUtils.degToRad(C.turn);
   scene.add(grp);
 }
-/* a lava lamp: gunmetal base and cap, a glass bottle, glossy neon-green wax that pools at the bottom,
-   swells, stretches off in blobs that drift up, cool at the top and sink back. Click it to switch it on or off. */
+/* a lava lamp, classic proportions: a chrome cone base, a tapered glass bottle, a small chrome cap.
+   Neon-green wax pools at the bottom, swells, stretches off in blobs that drift up, cool and sink.
+   The bulb lights the wax from below. Click to switch it off and on; it bows out while the book is open. */
 let lava = null;
 function lavaLamp() {
   const P = PROPS.lavaLamp, grp = new THREE.Group();
-  const metal = new THREE.MeshPhysicalMaterial({ color: 0x9a9da4, metalness: 1, roughness: 0.3, envMapIntensity: 1.8, clearcoat: 0.5, clearcoatRoughness: 0.25 });
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.052, 0.085, 96, 1), metal); base.position.y = 0.0425;
-  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.053, 0.054, 0.005, 96), metal); foot.position.y = 0.0025;
-  const prof = [], H = 0.17, y0 = 0.085, radius = (t) => Math.max(0.017, 0.029 + 0.016 * Math.sin(Math.PI * Math.pow(t, 0.8)) - 0.011 * t);
-  for (let k = 0; k <= 48; k++) { const t = k / 48; prof.push(new THREE.Vector2(radius(t), y0 + t * H)); }
-  const glass = new THREE.Mesh(new THREE.LatheGeometry(prof, 128), new THREE.MeshPhysicalMaterial({
-    color: 0xf2fff5, transmission: 1, thickness: 0.01, roughness: 0.02, ior: 1.45, envMapIntensity: 1.4,
-    attenuationColor: new THREE.Color(0xd6ffe2), attenuationDistance: 1.5, specularIntensity: 1,
-  }));
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.019, 0.05, 96), metal); cap.position.y = y0 + H + 0.025;
-  const waxMat = new THREE.MeshPhysicalMaterial({ color: 0x0f5a24, emissive: 0x22ff66, emissiveIntensity: 1.1, roughness: 0.14, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2 });
-  const wax = new MarchingCubes(52, waxMat, false, false, 60000);
-  const R = 0.042; wax.isolation = 80; wax.position.y = y0 + H / 2; wax.scale.set(R, H / 2 * 0.97, R);
-  const light = new THREE.PointLight(0x2dff6a, P.glow, 0.45, 2); light.position.y = y0 + H * 0.4;
-  for (const m of [base, foot, cap]) { m.castShadow = true; m.receiveShadow = true; }
-  for (const m of [base, foot, cap, glass]) { m.userData.prop = 'lamp'; clickable.push(m); }
-  grp.add(foot, base, glass, cap, wax, light, contactShadow(0.13, 0.13, 0.5));
+  const pm = new THREE.PMREMGenerator(renderer), studioEnv = pm.fromScene(new RoomEnvironment(renderer), 0.04).texture; pm.dispose();   // a bright studio, only for the chrome and glass
+  const fadeable = [];
+  const mat = (m) => { m.alphaHash = true; fadeable.push(m); return m; };
+  const chrome = mat(new THREE.MeshPhysicalMaterial({ color: 0xb4b8bf, metalness: 1, roughness: 0.07, envMap: studioEnv, envMapIntensity: 0.13, clearcoat: 0.8, clearcoatRoughness: 0.05 }));
+  const HB = 0.125, H = 0.2, y0 = HB;
+  const base = new THREE.Mesh(new THREE.LatheGeometry([
+    new THREE.Vector2(0, 0), new THREE.Vector2(0.062, 0), new THREE.Vector2(0.063, 0.003), new THREE.Vector2(0.061, 0.006),
+    new THREE.Vector2(0.041, HB - 0.006), new THREE.Vector2(0.043, HB - 0.003), new THREE.Vector2(0.042, HB), new THREE.Vector2(0, HB)], 128), chrome);
+  const radius = (t) => t < 0.12 ? 0.04 + 0.006 * Math.sin((t / 0.12) * Math.PI / 2) : 0.046 - 0.024 * Math.pow((t - 0.12) / 0.88, 1.1);   // widest low down, tapering to the top
+  const prof = [new THREE.Vector2(0.0, y0)];
+  for (let k = 0; k <= 60; k++) { const t = k / 60; prof.push(new THREE.Vector2(radius(t), y0 + t * H)); }
+  prof.push(new THREE.Vector2(0.0, y0 + H));
+  const glass = new THREE.Mesh(new THREE.LatheGeometry(prof, 128), mat(new THREE.MeshPhysicalMaterial({
+    color: 0xffffff, transmission: 1, thickness: 0.004, roughness: 0.02, ior: 1.5, envMap: studioEnv, envMapIntensity: 0.55, specularIntensity: 1 })));
+  const cap = new THREE.Mesh(new THREE.LatheGeometry([new THREE.Vector2(0, y0 + H - 0.004), new THREE.Vector2(0.0245, y0 + H - 0.004), new THREE.Vector2(0.0245, y0 + H + 0.002),
+    new THREE.Vector2(0.013, y0 + H + 0.046), new THREE.Vector2(0.0125, y0 + H + 0.048), new THREE.Vector2(0, y0 + H + 0.048)], 128), chrome);
+  // the wax: brightest where the bulb hits it from below, darker at its edges like a translucent solid
+  const waxMat = mat(new THREE.MeshPhysicalMaterial({ color: 0x0c4a1d, emissive: 0x22ff66, emissiveIntensity: 1, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.06, envMap: studioEnv, envMapIntensity: 0.35 }));
+  waxMat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vH;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvH = position.y;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vH;').replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      float face = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
+      totalEmissiveRadiance *= mix(1.7, 0.45, clamp((vH + 1.0) * 0.5, 0.0, 1.0)) * (0.45 + 0.55 * sqrt(face));`);
+  };
+  const wax = new MarchingCubes(56, waxMat, false, false, 70000);
+  const R = 0.046; wax.isolation = 80; wax.position.y = y0 + H / 2; wax.scale.set(R, H / 2 * 0.98, R);
+  // the liquid: green-tinted, lit from the bottom and fading upwards
+  const liqGeo = new THREE.LatheGeometry(prof.slice(1, -1).map(v => new THREE.Vector2(v.x * 0.965, v.y)), 96), cols = [];
+  for (let i = 0; i < liqGeo.attributes.position.count; i++) { const t = (liqGeo.attributes.position.getY(i) - y0) / H, k = 0.3 + 0.7 * Math.pow(1 - t, 1.6); cols.push(0.14 * k, 0.9 * k, 0.4 * k); }
+  liqGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const liquid = new THREE.Mesh(liqGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.036, 64), new THREE.MeshBasicMaterial({ color: 0xd8ffe2, transparent: true, opacity: 0.55 }));
+  bulb.rotation.x = -Math.PI / 2; bulb.position.y = y0 + 0.001;
+  const light = new THREE.PointLight(0x2dff6a, P.glow, 0.5, 2); light.position.y = y0 + H * 0.3;
+  for (const m of [base, cap]) { m.castShadow = true; m.receiveShadow = true; }
+  for (const m of [base, glass, cap]) { m.userData.prop = 'lamp'; clickable.push(m); }
+  const shadow = contactShadow(0.16, 0.16, 0.55);
+  grp.add(base, glass, cap, wax, liquid, bulb, light, shadow);
   grp.scale.setScalar(P.size); scene.add(grp);
-  // room for wax at each height, as a fraction of the cube (the bottle narrows at both ends)
-  const room = (y) => Math.max(0, radius(THREE.MathUtils.clamp(y, 0, 1)) - 0.02) / (2 * R) * 0.85;   // how far a blob's centre may wander at each height
-  // the liquid the wax floats in: faintly lit green, slightly smaller than the glass
-  const liquid = new THREE.Mesh(new THREE.LatheGeometry(prof.map(v => new THREE.Vector2(v.x * 0.93, v.y)), 96),
-    new THREE.MeshBasicMaterial({ color: 0x1f8a45, transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }));
-  const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.028, 64), new THREE.MeshBasicMaterial({ color: 0xbfffd2 }));   // the bulb glowing up through the bottom
-  bulb.rotation.x = -Math.PI / 2; bulb.position.y = y0 + 0.0008;
-  grp.add(liquid, bulb);
-  lava = { grp, wax, waxMat, light, liquid, bulb, room, level: 1, on: true, clock: 0, blobs: Array.from({ length: 5 }, (_, i) => ({
-    period: 26 + ((i * 7) % 5) * 6, phase: i * 1.37, drift: 0.4 + (i % 3) * 0.25, size: 0.85 + ((i * 53) % 7) / 18 })) };
+  const room = (y) => Math.max(0, radius(THREE.MathUtils.clamp(y, 0, 1)) - 0.021) / (2 * R) * 0.9;   // how far a blob's centre may wander at each height
+  lava = { grp, wax, waxMat, light, liquid, bulb, shadow, fadeable, room, level: 1, on: true, vis: 1, clock: 0, blobs: Array.from({ length: 5 }, (_, i) => ({
+    period: 28 + ((i * 7) % 5) * 7, phase: i * 0.21 + (i % 2) * 0.5, drift: 0.4 + (i % 3) * 0.25, size: 0.85 + ((i * 53) % 7) / 18 })) };
 }
 function placeLava() { if (!lava) return; const P = PROPS.lavaLamp, q = portrait() ? P.phone : P; lava.grp.position.set(q.x, 0, q.z); }
 function toggleLamp() {
@@ -402,19 +418,25 @@ function toggleLamp() {
 function tickLava(dt) {
   if (!lava) return;
   const L = lava, { wax, blobs } = L;
-  L.clock += dt * (0.15 + 0.85 * L.level);   // the wax slows as it cools
-  L.waxMat.emissiveIntensity = 0.05 + 1.05 * L.level; L.light.intensity = PROPS.lavaLamp.glow * L.level; L.liquid.material.opacity = 0.04 + 0.24 * L.level; L.bulb.material.color.setRGB(0.05 + 0.7 * L.level, 0.06 + 0.94 * L.level, 0.05 + 0.77 * L.level);
+  L.grp.visible = L.vis > 0.01;
+  if (!L.grp.visible) return;
+  for (const m of L.fadeable) m.opacity = L.vis;
+  L.shadow.material.opacity = 0.55 * L.vis;
+  L.clock += dt * (0.12 + 0.88 * L.level);   // the wax slows as it cools
+  L.waxMat.emissiveIntensity = 0.04 + 0.96 * L.level; L.light.intensity = PROPS.lavaLamp.glow * L.level * L.vis;
+  L.liquid.material.opacity = (0.1 + 0.6 * L.level) * L.vis; L.bulb.material.opacity = 0.55 * L.vis;
+  L.bulb.material.color.setRGB(0.04 + 0.8 * L.level, 0.05 + 0.95 * L.level, 0.04 + 0.85 * L.level);
   wax.reset();
-  wax.addBall(0.5, 0.0, 0.5, 1.15 + 0.12 * Math.sin(L.clock * 0.35), 12);       // the warm pool at the bottom, gently swelling
-  wax.addBall(0.5, 1.0, 0.5, 0.35, 12);                                          // a little cooled wax stuck at the top
+  wax.addBall(0.5, 0.0, 0.5, 1.65 + 0.15 * Math.sin(L.clock * 0.3), 12);       // the warm pool at the bottom, gently swelling
+  wax.addBall(0.5, 1.0, 0.5, 0.25, 12);                                         // a little cooled wax resting at the top
   for (const b of blobs) {
-    const c = ((L.clock / b.period + b.phase) % 1 + 1) % 1;                       // one trip: rise, rest, sink, rest
-    const up = c < 0.45 ? THREE.MathUtils.smootherstep(c / 0.45, 0, 1) : c < 0.55 ? 1 : c < 0.95 ? 1 - THREE.MathUtils.smootherstep((c - 0.55) / 0.4, 0, 1) : 0;
-    const y = 0.12 + 0.76 * up, r = L.room(y);
-    const x = 0.5 + r * Math.sin(L.clock * 0.11 * b.drift + b.phase * 3), z = 0.5 + r * Math.cos(L.clock * 0.09 * b.drift + b.phase * 2);
-    const st = 0.5 * b.size * (0.85 + 0.15 * Math.sin(L.clock * 0.5 + b.phase));
+    const c = ((L.clock / b.period + b.phase) % 1 + 1) % 1;                      // one trip: rise, rest, sink, rest
+    const up = c < 0.42 ? THREE.MathUtils.smootherstep(c / 0.42, 0, 1) : c < 0.52 ? 1 : c < 0.92 ? 1 - THREE.MathUtils.smootherstep((c - 0.52) / 0.4, 0, 1) : 0;
+    const y = 0.1 + 0.78 * up, r = L.room(y);
+    const x = 0.5 + r * Math.sin(L.clock * 0.1 * b.drift + b.phase * 9), z = 0.5 + r * Math.cos(L.clock * 0.08 * b.drift + b.phase * 7);
+    const st = 0.6 * b.size * (0.88 + 0.12 * Math.sin(L.clock * 0.45 + b.phase * 5));
     wax.addBall(x, y, z, st, 12);
-    if (y < 0.3 || y > 0.72) wax.addBall(0.5 + (x - 0.5) * 0.5, y < 0.3 ? y * 0.5 : (y + 1) / 2, 0.5 + (z - 0.5) * 0.5, st * 0.45, 12);   // the neck as it pulls away
+    if (y < 0.32) wax.addBall(0.5 + (x - 0.5) * 0.5, y * 0.55, 0.5 + (z - 0.5) * 0.5, st * 0.5 * (1 - y / 0.32), 12);   // the neck as it pulls off the pool
   }
   wax.update();
 }
@@ -621,7 +643,7 @@ function go(s) {
   spread = s;
   const open = s > 0 && s < SPREADS;
   if (!open && focus) { focus = null; if (open === opened) moveCamera(); }
-  if (open !== opened) { opened = open; moveCamera(); if (open && phoneMode() && !zoomHinted) { zoomHinted = true; showZoomHint(); } }
+  if (open !== opened) { opened = open; moveCamera(); if (lava) gsap.to(lava, { vis: open ? 0 : 1, duration: open ? 0.7 : 1.2, delay: open ? 0 : 0.6, ease: 'power2.inOut', overwrite: 'auto' }); if (open && phoneMode() && !zoomHinted) { zoomHinted = true; showZoomHint(); } }
   ui();
 }
 /* phones: zoom to one page, play it like a hover */
@@ -715,7 +737,7 @@ function pick(cx, cy) {
 }
 function pickProp(cx, cy) {   // the business cards (anything in clickable)
   ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
-  return ray.intersectObjects(clickable, false)[0] || null;
+  return ray.intersectObjects(clickable, false).find(h => h.object.userData.prop !== 'lamp' || (lava && lava.vis > 0.5)) || null;   // a faded-out lamp is not clickable
 }
 const touchLink = () => document.getElementById('navCta').href;
 function faceAt(hit) {
