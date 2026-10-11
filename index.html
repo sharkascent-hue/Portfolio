@@ -172,9 +172,10 @@ const FRAMING = {
 /* PROPS — where things sit on the desk: metres from the book's spine (x right, z towards you), turn in degrees */
 const PROPS = {
   pencil:   { x: -0.19, z: 0.165, turn: 28 },
-  cards:    { x: 0.29, z: 0.17, turn: -14 },    // two AlmLab business cards, fanned; clicking them opens Get in Touch
+  cards:    { x: 0.29, z: 0.17, turn: -14,      // two AlmLab business cards, fanned: click to flip, click again to get in touch
+              phone: { x: 0.17, z: 0.17 } },
   lavaLamp: { x: 0.31, z: -0.19, size: 0.72, glow: 0.05,   // neon-green lava lamp; glow = how much green light it throws on the desk
-              phone: { x: 0.27, z: -0.17 } },              // where it stands on phones (upright screens), above the book
+              phone: { x: 0.19, z: -0.2, size: 0.62 } },              // where it stands on phones (upright screens), above the book
 };
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
@@ -358,8 +359,8 @@ function businessCards(front, back) {
   for (const m of [white, black]) { m.castShadow = true; m.receiveShadow = true; m.userData.prop = 'cards'; clickable.push(m); }
   cardRig = { black, t, flipped: false };
   const sh = contactShadow(0.13, 0.085, 0.6); sh.position.y = 0.0001;
-  grp.add(sh, white, black); grp.position.set(C.x, 0.0002, C.z); grp.rotation.y = THREE.MathUtils.degToRad(C.turn);
-  scene.add(grp);
+  grp.add(sh, white, black); grp.rotation.y = THREE.MathUtils.degToRad(C.turn);
+  scene.add(grp); cardRig.grp = grp;
 }
 /* a lava lamp, classic proportions: a chrome cone base, a tapered glass bottle, a small chrome cap.
    Neon-green wax pools at the bottom, swells, stretches off in blobs that drift up, cool and sink.
@@ -400,8 +401,8 @@ function lavaLamp() {
     vertexShader: `varying vec3 vN; varying vec3 vV; varying float vH; uniform float y0; uniform float h;
       void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = -mv.xyz; vH = (position.y - y0) / h; gl_Position = projectionMatrix * mv; }`,
     fragmentShader: `varying vec3 vN; varying vec3 vV; varying float vH; uniform float glow;
-      void main() { float f = abs(dot(normalize(vN), normalize(vV))); float k = pow(f, 1.4) * mix(1.0, 0.22, smoothstep(0.0, 1.0, vH));
-        gl_FragColor = vec4(vec3(0.09, 0.62, 0.28) * k * glow, 1.0); }`,
+      void main() { float f = abs(dot(normalize(vN), normalize(vV))); float k = (0.55 + 0.45 * f) * mix(1.0, 0.3, smoothstep(0.0, 1.0, vH));
+        gl_FragColor = vec4(vec3(0.06, 0.42, 0.19) * k * glow, 1.0); }`,
   }));
   const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.036, 64), new THREE.MeshBasicMaterial({ color: 0xd8ffe2, transparent: true, opacity: 0.55 }));
   bulb.rotation.x = -Math.PI / 2; bulb.position.y = y0 + 0.001;
@@ -409,13 +410,18 @@ function lavaLamp() {
   for (const m of [base, cap]) { m.castShadow = true; m.receiveShadow = true; }
   for (const m of [base, glass, cap]) { m.userData.prop = 'lamp'; clickable.push(m); }
   const shadow = contactShadow(0.16, 0.16, 0.55);
+  bulb.visible = false;
   grp.add(base, glass, cap, wax, liquid, bulb, light, shadow);
   grp.scale.setScalar(P.size); scene.add(grp);
   const room = (y) => Math.max(0, radius(THREE.MathUtils.clamp(y, 0, 1)) - 0.021) / (2 * R) * 0.9;   // how far a blob's centre may wander at each height
-  lava = { grp, wax, waxMat, light, liquid, bulb, shadow, fadeable, room, level: 1, on: true, vis: 1, clock: 0, blobs: Array.from({ length: 5 }, (_, i) => ({
+  lava = { grp, wax, waxMat, light, liquid, bulb, shadow, fadeable, room, level: 1, on: true, vis: 1, clock: 0, blobs: Array.from({ length: 6 }, (_, i) => ({
     period: 28 + ((i * 7) % 5) * 7, phase: i * 0.21 + (i % 2) * 0.5, drift: 0.4 + (i % 3) * 0.25, size: 0.85 + ((i * 53) % 7) / 18 })) };
 }
-function placeLava() { if (!lava) return; const P = PROPS.lavaLamp, q = portrait() ? P.phone : P; lava.grp.position.set(q.x, 0, q.z); }
+function placeProps() {   // laptops and phones each get their own spot for the lamp and the cards
+  const ph = portrait();
+  if (lava) { const P = PROPS.lavaLamp, q = ph ? P.phone : P; lava.grp.position.set(q.x, 0, q.z); lava.grp.scale.setScalar(q.size ?? P.size); }
+  if (cardRig) { const C = PROPS.cards, q = ph ? C.phone : C; cardRig.grp.position.set(q.x, 0.0002, q.z); }
+}
 function toggleLamp() {
   if (!lava) return; lava.on = !lava.on;
   gsap.to(lava, { level: lava.on ? 1 : 0, duration: lava.on ? 2.2 : 1.6, ease: lava.on ? 'power2.in' : 'power2.out' });
@@ -432,7 +438,7 @@ function tickLava(dt) {
   L.liquid.material.uniforms.glow.value = (0.08 + 0.92 * L.level) * L.vis; L.bulb.material.opacity = 0.55 * L.vis;
   L.bulb.material.color.setRGB(0.04 + 0.8 * L.level, 0.05 + 0.95 * L.level, 0.04 + 0.85 * L.level);
   wax.reset();
-  wax.addBall(0.5, 0.0, 0.5, 1.65 + 0.15 * Math.sin(L.clock * 0.3), 12);       // the warm pool at the bottom, gently swelling
+  wax.addBall(0.5, 0.02, 0.5, 1.75 + 0.15 * Math.sin(L.clock * 0.3), 12);       // the warm pool at the bottom, gently swelling
   wax.addBall(0.5, 1.0, 0.5, 0.25, 12);                                         // a little cooled wax resting at the top
   for (const b of blobs) {
     const c = ((L.clock / b.period + b.phase) % 1 + 1) % 1;                      // one trip: rise, rest, sink, rest
@@ -931,7 +937,7 @@ async function boot() {
     pageTex('cover'), pageTex('coverback'), pageTex('contents'), pageTex('end'),
     ...WORKS.map((w, i) => pageTex('work' + String(i + 1).padStart(2, '0'))),
   ]);
-  buildDesk(wood); businessCards(...cards); lavaLamp(); placeLava();
+  buildDesk(wood); businessCards(...cards); lavaLamp(); placeProps();
   buildBook({ cover, coverback, contents, end, works });
   fit(); Object.assign(cam, rigNow());
   leaves.forEach(l => l.update()); placeCamera(0.016);
@@ -953,7 +959,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 let lastPortrait = portrait();
-addEventListener('resize', () => { fit(); placeLava(); lastPortrait = portrait(); moveCamera(0.01); });
+addEventListener('resize', () => { fit(); placeProps(); lastPortrait = portrait(); moveCamera(0.01); });
 boot().catch(err => { console.error(err); document.getElementById('loader').innerHTML = `<p style="font:14px Poppins;color:#fff">Could not load the book. ${err?.message ?? ''}</p>`; });
 </script>
 </body>
