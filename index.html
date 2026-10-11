@@ -137,9 +137,9 @@ const CONFIG = {
   flipSeconds: 0.78,       // one page turn
   cascadeGap: 0.06,        // seconds between leaves when jumping several pages
   cameraSeconds: 1.7,      // the dolly in when the book opens
-  bloom: { strength: 0.3, radius: 0.5, threshold: 0.86 },
-  lamp: 9,                 // spot light on the book (the desk lighting is baked)
-  desk: 0.36,              // brightness of the baked desk
+  bloom: { strength: 0.22, radius: 0.45, threshold: 0.92 },
+  lamp: 9,                 // the desk lamp: lights the wood, the book and casts the shadows
+  desk: 1.0,               // brightness of the wood
   parallax: 0.018,         // how much the camera follows the mouse
   hoverScrollSpeed: 0.055, // page heights per second when a page plays on hover
 };
@@ -160,6 +160,7 @@ const FRAMING = {
   portrait:  { closed: { el: 66, cx: 0.50, cy: 0.58, w: 0.86 }, open: { el: 76, cx: 0.50, cy: 0.52, w: 0.97 },
                focus:  { el: 80, cx: 0.50, cy: 0.50, w: 0.96 } },   // phones: one page zoomed to fill the width
 };
+const PENCIL = { x: -0.24, z: 0.2, turn: 35 };   // where the pencil lies (metres from the spine) and its angle in degrees
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -189,9 +190,9 @@ composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 /* =====================================================================
-   LIGHT — the desk is pre-lit; the lamp lights the book and casts shadows
+   LIGHT — one desk lamp lights everything and casts the shadows
    ===================================================================== */
-const lamp = new THREE.SpotLight(0xeef4ff, CONFIG.lamp, 4, 0.42, 0.95, 2);
+const lamp = new THREE.SpotLight(0xeef4ff, CONFIG.lamp, 4, 0.36, 1, 2);
 lamp.position.set(0.15, 1.7, -0.35);
 lamp.target.position.set(0.12, 0, -0.02);
 lamp.castShadow = true;
@@ -232,15 +233,62 @@ function tex(src, { srgb = true, repeat = false } = {}) {
 }
 
 /* =====================================================================
-   DESK — baked in Blender: wood, lamp pool and the pencil, one image
+   DESK — dark wood drawn live on the GPU, and a pencil
    ===================================================================== */
-function buildDesk(t) {
-  const desk = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(CONFIG.desk, CONFIG.desk, CONFIG.desk) }));
-  desk.rotation.x = -Math.PI / 2;
+/* The wood is drawn by the GPU at whatever resolution the screen has, so it never blurs.
+   Grain runs left to right; fine detail fades out with distance so it never shimmers. */
+const WOOD_GLSL = `
+uniform float woodTone;
+varying vec2 vWood;
+float wh(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float wn(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(wh(i), wh(i + vec2(1, 0)), u.x), mix(wh(i + vec2(0, 1)), wh(i + vec2(1, 1)), u.x), u.y); }
+float wf(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * wn(p); p = p * 2.03 + 17.1; a *= 0.5; } return s; }
+float aa(float v, float x) { return mix(v, 0.5, clamp(fwidth(x) * 1.5, 0.0, 1.0)); }
+float lines(float r, float x, float halfw) {   // thin grain lines, each with its own strength and breaks
+  float id = floor(r), t = abs(fract(r) - 0.5), w = fwidth(r);
+  float l = 1.0 - smoothstep(halfw - w, halfw + w, t);
+  l *= (0.25 + 0.75 * wn(vec2(x * 5.0 + id * 7.31, id * 1.73))) * smoothstep(0.2, 0.65, wn(vec2(x * 16.0, id * 3.17)));
+  return mix(l, halfw * 0.9, clamp(w * 1.4 - 0.2, 0.0, 1.0));   // far away: average out instead of shimmering
+}
+float woodGrain(vec2 p) {
+  float warp = wf(vec2(p.x * 2.6, p.y * 3.0)) * 0.9 + wf(vec2(p.x * 0.7, p.y * 0.9)) * 2.6;
+  float coarse = lines(p.y * 240.0 + warp * 14.0, p.x, 0.12);
+  float fine = lines(p.y * 620.0 + warp * 36.0 + 0.37, p.x * 1.7, 0.08);
+  float tone = wf(vec2(p.x * 1.6, p.y * 9.0));
+  return clamp(0.8 * coarse + 0.3 * fine + 0.4 * tone - 0.15, 0.0, 1.0);
+}`;
+function buildDesk() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.38, metalness: 0, envMapIntensity: 0.08 });
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.woodTone = { value: CONFIG.desk };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWood;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWood = (modelMatrix * vec4(position, 1.0)).xz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + WOOD_GLSL)
+      .replace('#include <map_fragment>', `float wg = woodGrain(vWood);
+        diffuseColor.rgb = mix(vec3(0.0024, 0.0023, 0.0024), vec3(0.036, 0.036, 0.039), wg) * woodTone;`)
+      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = roughness + 0.3 * (1.0 - wg) - 0.1 * wg;');
+  };
+  const desk = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), mat);
+  desk.rotation.x = -Math.PI / 2; desk.receiveShadow = true;
   scene.add(desk);
-  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.ShadowMaterial({ opacity: 0.55 }));
-  catcher.rotation.x = -Math.PI / 2; catcher.position.y = 0.0003; catcher.receiveShadow = true;
-  scene.add(catcher);
+  scene.add(pencil());
+}
+/* a real pencil: black lacquered hexagonal body, sharpened cedar cone, graphite point */
+function pencil() {
+  const g = new THREE.Group(), r = 0.0036, L = 0.16, cone = 0.019;
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.32, envMapIntensity: 0.9 }));
+  body.rotation.z = Math.PI / 2;
+  const wood = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.32, r, cone, 6), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.8 }));
+  wood.rotation.z = Math.PI / 2; wood.position.x = L / 2 + cone / 2;
+  const lead = new THREE.Mesh(new THREE.ConeGeometry(r * 0.32, 0.005, 12), new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.35, metalness: 0.6 }));
+  lead.rotation.z = -Math.PI / 2; lead.position.x = L / 2 + cone + 0.0025;
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.02, r * 1.02, 0.004, 6), new THREE.MeshStandardMaterial({ color: 0x9a9a9e, roughness: 0.3, metalness: 1 }));
+  cap.rotation.z = Math.PI / 2; cap.position.x = -L / 2 - 0.002;
+  g.add(body, wood, lead, cap);
+  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+  g.position.set(PENCIL.x, r * 0.87, PENCIL.z); g.rotation.y = THREE.MathUtils.degToRad(PENCIL.turn);
+  return g;
 }
 function softShadow(w, d, x, opacity) {
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
@@ -271,8 +319,8 @@ function leafGeometry(w, d) {
   g.computeVertexNormals();
   return g;
 }
-const screenMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.8, 0.8, 0.8), color: new THREE.Color(0.35, 0.35, 0.35), roughness: 0.85, metalness: 0, envMapIntensity: 0.15 });
-const coverMat = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.4, metalness: 0, envMapIntensity: 0.4, color: new THREE.Color(0.3, 0.3, 0.3) });
+const screenMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.62, 0.62, 0.62), color: new THREE.Color(0.3, 0.3, 0.3), roughness: 0.85, metalness: 0, envMapIntensity: 0.15 });
+const coverMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.5, 0.5, 0.5), roughness: 0.8, metalness: 0, envMapIntensity: 0.08, color: new THREE.Color(0.06, 0.06, 0.06) });   // black cloth, the printed logo reads white
 
 const ease3 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 class Leaf {
@@ -626,11 +674,11 @@ function intro() {
    ===================================================================== */
 const pageTex = (n) => tex(`img/pages/${n}.webp`);
 async function boot() {
-  const [desk, cover, coverback, contents, end, ...works] = await Promise.all([
-    tex('img/desk.jpg'), pageTex('cover'), pageTex('coverback'), pageTex('contents'), pageTex('end'),
+  const [cover, coverback, contents, end, ...works] = await Promise.all([
+    pageTex('cover'), pageTex('coverback'), pageTex('contents'), pageTex('end'),
     ...WORKS.map((w, i) => pageTex('work' + String(i + 1).padStart(2, '0'))),
   ]);
-  buildDesk(desk);
+  buildDesk();
   buildBook({ cover, coverback, contents, end, works });
   fit(); Object.assign(cam, rigNow());
   leaves.forEach(l => l.update()); placeCamera(0.016);

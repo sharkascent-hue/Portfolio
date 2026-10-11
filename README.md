@@ -10,17 +10,17 @@ index.html              the whole page: scene, book, turns, hover, links
 three.module.min.js     three.js r160
 vendor/three-addons/    bloom post-processing from three.js r160
 gsap.min.js             GSAP 3.15 for camera moves, turns and the intro
-img/desk.jpg            the desk, lamp pool and pencil, baked in Blender
 img/pages/*.webp        every printed page (cover, contents, 18 projects, end)
 img/*.jpg|png           full-page screenshots that play on hover
-render/                 Blender scripts: desk bake, page faces, camera fit
+render/                 page-face scripts (and the old Blender desk scripts)
 pages.html              draws the printed pages; render/faces.mjs captures them
 ```
 
 ## Easy changes (edit index.html and push)
 
 - **Projects, names, links, hover screenshots**: the `WORKS` list at the top of the script.
-- **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, desk brightness, hover scroll speed.
+- **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, wood brightness, hover scroll speed.
+- **Pencil**: the `PENCIL` line — where it lies and its angle.
 - **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
   for laptops and phones. The camera works out its own position from these on every screen size.
   `focus` is the zoomed-in single page on phones. `LENS` sets how long the lens is: lower means flatter, less looming.
@@ -32,12 +32,15 @@ Swipe or use the arrows to move one page at a time while zoomed in.
 
 ## A new project or a new screenshot
 
-1. Put the full-page screenshot in `img/` and add it to `WORKS` in `index.html` and `pages.html`.
-2. Regenerate the printed pages: serve the folder (`python3 -m http.server 8765`),
-   run `node render/faces.mjs`, then convert `render/faces/*.png` to `img/pages/*.webp`.
+1. Take a screenshot of the site 1440px wide, ideally at 2x and full page, and put it in `img/`.
+2. Add it to `WORKS` in `index.html` and `pages.html`.
+3. Run `python3 render/work_faces.py` from this folder. It rebuilds the printed pages
+   (`img/pages/workNN.webp`) and enlarges small screenshots for the hover playback.
+
+The cover, contents and end pages come from `pages.html`: serve the folder
+(`python3 -m http.server 8765`), run `node render/faces.mjs`, then convert the PNGs to `img/pages/*.webp`.
 
 ## The desk
 
-`render/bake_desk.py` renders the wood, the lamp pool and the pencil top-down in Blender
-(`pip install bpy`), about 8 minutes on 4 cores. Move the pencil in `render/book_scene.py`
-(`add_props`), re-bake, save as `img/desk.jpg`.
+The wood is drawn live on the graphics card (`WOOD_GLSL` in `index.html`), so it stays sharp on any screen.
+Its colours are the two `vec3` values in `buildDesk`; `CONFIG.desk` makes it brighter or darker.
