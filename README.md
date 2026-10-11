@@ -21,7 +21,14 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 
 - **Projects, names, links, hover screenshots**: the `WORKS` list at the top of the script.
 - **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, desk brightness, hover scroll speed.
-- **Framing**: the `RIGS` block — where the camera sits closed and open, for laptops and phones.
+- **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
+  for laptops and phones. The camera works out its own position from these on every screen size.
+  `focus` is the zoomed-in single page on phones. `LENS` sets how long the lens is: lower means flatter, less looming.
+
+## On phones
+
+Tap the book to open it. Tap a page to zoom in and watch the site scroll. Tap it again to visit.
+Swipe or use the arrows to move one page at a time while zoomed in.
 
 ## A new project or a new screenshot
 

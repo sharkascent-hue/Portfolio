@@ -25,6 +25,7 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
 #gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
 .grade{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(120% 95% at 50% 55%,transparent 45%,rgba(0,0,0,.55) 85%,rgba(0,0,0,.85) 100%)}
+@media (orientation:portrait){.grade{background:linear-gradient(180deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.35) 30%,transparent 42%,transparent 70%,rgba(0,0,0,.5) 82%,rgba(0,0,0,.95) 100%),radial-gradient(140% 70% at 50% 56%,transparent 40%,rgba(0,0,0,.6) 100%)}}
 .nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:26px 36px;pointer-events:none}
 .nav>*{pointer-events:auto}
 .logo{display:block;height:22px;opacity:0}
@@ -49,6 +50,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 .hint i{display:block;width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
 .hint.off{opacity:0!important}
+.hint.up{bottom:96px}
+.bar a.dim{opacity:.4}
 .tip{position:fixed;z-index:11;pointer-events:none;font:500 12px/1 var(--sans);color:#111;background:#fff;border-radius:999px;padding:8px 12px;transform:translate(14px,14px);opacity:0;transition:opacity .2s ease;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .tip.on{opacity:1}
 .loader{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#000;transition:opacity .9s ease}
@@ -149,13 +152,15 @@ const LEAF_T = 0.0009, BOARD_T = 0.0025, OVER = 0.004;
 const SEGS = 40;
 const N_LEAVES = 11;                        // cover + 9 work leaves + back cover
 
-/* camera rigs fitted to the reference framing: target (x, z), elevation°, distance */
-const RIGS = {
-  landscape: { closed: [0.0987, -0.094, 58, 1.2543], open: [0.0, -0.0387, 56, 0.8732] },
-  portrait:  { closed: [0.15, -0.0882, 60, 1.2185],  open: [0.0286, -0.0615, 60, 1.1519] },
+/* FRAMING — where the book sits on screen. The camera solves for these on every screen shape.
+   cx, cy: centre of the book as a fraction of the screen; w: its width as a fraction of the screen
+   el: camera tilt. On phones, tapping a page zooms to it (focus) and a second tap opens the site. */
+const FRAMING = {
+  landscape: { closed: { el: 58, cx: 0.55, cy: 0.62, w: 0.30 }, open: { el: 58, cx: 0.50, cy: 0.56, w: 0.86 } },
+  portrait:  { closed: { el: 66, cx: 0.50, cy: 0.58, w: 0.86 }, open: { el: 76, cx: 0.50, cy: 0.52, w: 0.97 },
+               focus:  { el: 80, cx: 0.50, cy: 0.50, w: 0.96 } },   // phones: one page zoomed to fill the width
 };
-const LENS_HALF = Math.atan(18 / 40);       // 40 mm lens, 36 mm sensor width (landscape fits the width)
-const LENS_HALF_V = Math.atan(12 / 40);     // 24 mm sensor height (portrait fits the height)
+const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const touchOnly = matchMedia('(hover: none)').matches;
@@ -179,7 +184,7 @@ const camera = new THREE.PerspectiveCamera(30, 1, 0.02, 20);
 const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), CONFIG.bloom.strength, CONFIG.bloom.radius, CONFIG.bloom.threshold);
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), small ? CONFIG.bloom.strength * 0.6 : CONFIG.bloom.strength, CONFIG.bloom.radius, small ? 0.92 : CONFIG.bloom.threshold);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
@@ -316,7 +321,7 @@ class Leaf {
    ===================================================================== */
 const book = new THREE.Group(); scene.add(book);
 const leaves = [];
-let spread = 0, opened = false, busy = 0;
+let spread = 0, opened = false, busy = 0, focus = null;   // focus: 'left' | 'right' page zoomed on phones
 const parts = {};
 
 function edgeTexture() {
@@ -379,8 +384,31 @@ function go(s) {
   });
   spread = s;
   const open = s > 0 && s < SPREADS;
-  if (open !== opened) { opened = open; moveCamera(); }
+  if (!open && focus) { focus = null; if (open === opened) moveCamera(); }
+  if (open !== opened) { opened = open; moveCamera(); if (open && phoneMode() && !zoomHinted) { zoomHinted = true; showZoomHint(); } }
   ui();
+  if (focus) setTimeout(playFocus, (reduceMotion ? 0 : CONFIG.flipSeconds * 1000) + 60);
+}
+/* phones: zoom to one page, play it like a hover */
+const phoneMode = () => touchOnly && portrait();
+function pageFace(side) {   // the leaf face showing on that side of the open spread
+  const i = side === 'left' ? spread - 1 : spread;
+  return i >= 0 && i < N_LEAVES ? { leaf: leaves[i], face: side === 'left' ? 1 : 0 } : null;
+}
+function playFocus() {
+  if (!focus || busy) return;
+  const f = pageFace(focus);
+  if (f && workOn(f.leaf.i, f.face) && !(hover && hover.leaf === f.leaf && hover.face === f.face)) { stopHover(); startHover(f); }
+}
+function setFocus(side) {
+  if (side === focus) return;
+  focus = side; stopHover(); moveCamera(0.9); playFocus(); ui();
+}
+/* step one page at a time when zoomed in, a spread at a time otherwise */
+function step(d) {
+  if (!focus || !opened) { if (d > 0 && spread === SPREADS - 1) go(0); else go(spread + d); return; }
+  if (d > 0) { if (focus === 'left') setFocus('right'); else if (spread >= SPREADS - 1) go(0); else { focus = 'left'; go(spread + 1); moveCamera(0.9); } }
+  else { if (focus === 'right') setFocus('left'); else if (spread <= 1) { go(0); } else { focus = 'right'; go(spread - 1); moveCamera(0.9); } }
 }
 
 /* =====================================================================
@@ -389,9 +417,29 @@ function go(s) {
 const cam = { x: 0, y: 0, z: 0, lx: 0, ly: 0, lz: 0, fov: 30 };
 const pointer = { x: 0, y: 0 }, ptr = { x: 0, y: 0 };
 const portrait = () => innerWidth < innerHeight;
+const _v = new THREE.Vector3(), _probe = new THREE.PerspectiveCamera();
+function bookCorners(state) {
+  const bw = PAGE_W + OVER, bd = PAGE_D / 2 + OVER;
+  const x0 = state === 'open' || focus === 'left' && state === 'focus' ? -bw : -0.004;
+  const x1 = state === 'focus' && focus === 'left' ? 0.004 : bw;
+  return [[x0, -bd], [x1, -bd], [x0, bd], [x1, bd]].map(([x, z]) => new THREE.Vector3(x, 0.012, z));
+}
 function rigNow() {
-  const r = RIGS[portrait() ? 'portrait' : 'landscape'][opened ? 'open' : 'closed'];
-  const [tx, tz, el, d] = r, e = THREE.MathUtils.degToRad(el);
+  const orient = portrait() ? 'portrait' : 'landscape';
+  const state = !opened ? 'closed' : focus && orient === 'portrait' ? 'focus' : 'open';
+  const T = FRAMING[orient][state], e = THREE.MathUtils.degToRad(T.el), pts = bookCorners(state);
+  _probe.fov = camera.fov; _probe.aspect = camera.aspect; _probe.near = 0.02; _probe.far = 30; _probe.updateProjectionMatrix();
+  const vt = Math.tan(THREE.MathUtils.degToRad(_probe.fov) / 2), gx = 2 * vt * _probe.aspect, gz = 2 * vt / Math.sin(e);   // world size of the frame per unit distance
+  let tx = 0, tz = 0, d = 1;
+  for (let it = 0; it < 120; it++) {
+    _probe.position.set(tx, Math.sin(e) * d, tz + Math.cos(e) * d); _probe.lookAt(tx, 0, tz); _probe.updateMatrixWorld();
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const p of pts) { _v.copy(p).project(_probe); const fx = (_v.x + 1) / 2, fy = (1 - _v.y) / 2; x0 = Math.min(x0, fx); x1 = Math.max(x1, fx); y0 = Math.min(y0, fy); y1 = Math.max(y1, fy); }
+    if (!(x1 > x0)) { d *= 1.5; continue; }
+    d *= Math.min(1.5, Math.max(0.67, Math.pow((x1 - x0) / T.w, 0.7)));
+    tx += ((x0 + x1) / 2 - T.cx) * d * gx * 0.6;
+    tz += ((y0 + y1) / 2 - T.cy) * d * gz * 0.6;
+  }
   return { x: tx, y: Math.sin(e) * d, z: tz + Math.cos(e) * d, lx: tx, ly: 0, lz: tz };
 }
 function moveCamera(dur = CONFIG.cameraSeconds) {
@@ -405,7 +453,8 @@ function fit() {
   renderer.setSize(w, h, false); composer.setSize(w, h);
   bloom.resolution.set(w / 2, h / 2);
   camera.aspect = a;
-  camera.fov = THREE.MathUtils.radToDeg(portrait() ? 2 * LENS_HALF_V : 2 * Math.atan(Math.tan(LENS_HALF) / a));
+  const half = THREE.MathUtils.degToRad(LENS[portrait() ? 'portrait' : 'landscape']) / 2;
+  camera.fov = THREE.MathUtils.radToDeg(a >= 1 ? 2 * Math.atan(Math.tan(half) / a) : 2 * half);   // three.js fov is vertical
   camera.updateProjectionMatrix();
 }
 function placeCamera(dt) {
@@ -497,21 +546,23 @@ canvas.addEventListener('pointerup', (e) => {
   if (!downAt) return;
   const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y, quick = performance.now() - downAt.t < 600;
   downAt = null;
-  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { go(spread + (dx < 0 ? 1 : -1)); return; }   // swipe
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { hideHint(); step(dx < 0 ? 1 : -1); return; }   // swipe
   if (Math.hypot(dx, dy) > 10 || !quick) return;
   hideHint();
   const hit = pick(e.clientX, e.clientY);
   if (!opened) { if (hit) go(spread === 0 ? 1 : 0); return; }
   const f = faceAt(hit);
+  if (phoneMode() && f) {   // phones: first tap zooms to the page, second tap acts on it
+    const side = hit.point.x < 0 ? 'left' : 'right';
+    if (focus !== side) { setFocus(side); return; }
+  } else if (phoneMode() && focus) { setFocus(null); return; }
   if (f) {
     const w = workOn(f.leaf.i, f.face);
     if (w) { openSite(w.url); return; }
     if (f.leaf.i === 0 && f.face === 1) { const row = contentsRow(f); if (row) { go(row); return; } }
   }
   // anywhere else: turn toward the side that was clicked
-  const side = e.clientX < innerWidth / 2 ? -1 : 1;
-  if (side > 0 && spread === SPREADS - 1) { go(0); return; }
-  go(spread + side);
+  step(e.clientX < innerWidth / 2 ? -1 : 1);
 });
 /* contents page: which project row was clicked (design px of the 1536×864 page) */
 function contentsRow(f) {
@@ -535,18 +586,22 @@ addEventListener('wheel', (e) => {
 addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(spread >= SPREADS - 1 ? 0 : spread + 1); }
   if (e.key === 'ArrowLeft') { e.preventDefault(); go(spread - 1); }
-  if (e.key === 'Escape') go(0);
+  if (e.key === 'Escape') { if (focus) setFocus(null); else go(0); }
 });
-document.getElementById('prev').addEventListener('click', () => go(spread - 1));
-document.getElementById('next').addEventListener('click', () => go(spread >= SPREADS - 1 ? 0 : spread + 1));
+document.getElementById('prev').addEventListener('click', () => step(-1));
+document.getElementById('next').addEventListener('click', () => step(1));
 
 /* =====================================================================
    UI
    ===================================================================== */
 const hero = document.getElementById('hero'), bar = document.getElementById('bar'), hint = document.getElementById('hint');
 const linkL = document.getElementById('linkL'), linkR = document.getElementById('linkR');
-if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, swipe to turn, tap a page to visit'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
+if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, tap a page to zoom in, tap again to visit'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
 function hideHint() { hint.classList.add('off'); }
+let zoomHinted = false;
+function showZoomHint() {   // phones: after the book opens, say how to zoom in
+  setTimeout(() => { hint.querySelector('span').textContent = 'Tap a page to zoom in'; hint.classList.add('up'); hint.classList.remove('off'); gsap.to(hint, { opacity: 1, duration: 0.6 }); }, 1200);
+}
 function setLink(el, w) { el.classList.toggle('empty', !w); if (w) { el.href = w.url; el.innerHTML = `<span class="k">${w.n}</span>${w.title}<span class="go">↗</span>`; } }
 let heroShown = true;
 function ui() {
@@ -555,6 +610,7 @@ function ui() {
   bar.classList.toggle('on', open);
   setLink(linkL, open ? workOn(spread - 1, 1) : null);
   setLink(linkR, open ? workOn(spread, 0) : null);
+  linkL.classList.toggle('dim', focus === 'right'); linkR.classList.toggle('dim', focus === 'left');
   document.getElementById('prev').disabled = spread <= 0;
 }
 function intro() {
@@ -581,7 +637,7 @@ async function boot() {
   renderer.compile(scene, camera); composer.render();
   document.getElementById('loader').classList.add('off');
   intro();
-  window.almBook = { go, get spread() { return spread; } };
+  window.almBook = { go, step, setFocus, get spread() { return spread; }, get focus() { return focus; } };
   last = performance.now(); requestAnimationFrame(loop);
 }
 let last = performance.now();
@@ -595,7 +651,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 let lastPortrait = portrait();
-addEventListener('resize', () => { fit(); if (portrait() !== lastPortrait) { lastPortrait = portrait(); moveCamera(0.01); } });
+addEventListener('resize', () => { fit(); lastPortrait = portrait(); moveCamera(0.01); });
 boot().catch(err => { console.error(err); document.getElementById('loader').innerHTML = `<p style="font:14px Poppins;color:#fff">Could not load the book. ${err?.message ?? ''}</p>`; });
 </script>
 </body>
