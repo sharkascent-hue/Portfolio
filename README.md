@@ -27,7 +27,8 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 
 ## On phones
 
-Tap the book to open it. Tap a page to zoom in and watch the site scroll. Tap it again to visit.
+Tap the book to open it. Both pages of the open spread play their site on their own.
+Tap a page to zoom in on it. Tap it again to visit.
 Swipe or use the arrows to move one page at a time while zoomed in.
 
 ## A new project or a new screenshot

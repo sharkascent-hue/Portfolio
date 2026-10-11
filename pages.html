@@ -17,7 +17,7 @@ const WORKS = [
   { n:'02', title:'All Leaders Follow',        img:'img/allleaders.jpg' },
   { n:'03', title:'Pentium Logistics',         img:'img/pentium.jpg' },
   { n:'04', title:'Mejia Landscaping',         img:'img/mejia.jpg' },
-  { n:'05', title:'Big Bear Planetariums',     img:'img/bigbear.png' },
+  { n:'05', title:'Big Bear Planetariums',     img:'img/bigbear.jpg' },
   { n:'06', title:'Five Star Home Improvement',img:'img/fivestar.jpg' },
   { n:'07', title:'Evolve Gym Equipment',      img:'img/evolve.jpg' },
   { n:'08', title:'Attics R Us',               img:'img/attics.jpg' },
@@ -107,11 +107,12 @@ function contents() {
 }
 function end() {
   const c = canvas(), g = c.getContext('2d'); paper(g);
-  const h = 96, w = h * logoImg.width / logoImg.height;
-  drawLogo(g, (W - w) / 2, (H - h) / 2 - 30, h, '#f2f2f2');
-  g.fillStyle = 'rgba(255,255,255,.5)'; g.font = '400 22px "JetBrains Mono", monospace'; g.textAlign = 'center';
-  g.fillText('WEBSITES  ·  ADS  ·  SOCIAL  ·  SEO', W / 2, H / 2 + 70);
-  g.fillStyle = '#f2f2f2'; g.font = '500 24px Poppins, sans-serif';
+  const h = 170, w = h * logoImg.width / logoImg.height;
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(logoImg, (W - w) / 2, (H - h) / 2 - 50, w, h);   // the logo in its own colours, big and clear
+  g.fillStyle = 'rgba(255,255,255,.62)'; g.font = '500 24px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  g.fillText('WEBSITES  ·  ADS  ·  SOCIAL  ·  SEO', W / 2, H / 2 + 95);
+  g.fillStyle = '#ffffff'; g.font = '500 30px Poppins, sans-serif';
   g.fillText('almlabmarketing.com', W / 2, H - 70);
   faces['end'] = c;
 }

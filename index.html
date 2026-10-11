@@ -114,7 +114,7 @@ const WORKS = [
   { n:'02', title:'All Leaders Follow',        url:'https://allleadersfollow.vercel.app/index.html', img:'img/allleaders.jpg' },
   { n:'03', title:'Pentium Logistics',         url:'https://www.pentiumenvironmentallogistics.ie/', img:'img/pentium.jpg' },
   { n:'04', title:'Mejia Landscaping',         url:'https://mejia-psi.vercel.app/', img:'img/mejia.jpg' },
-  { n:'05', title:'Big Bear Planetariums',     url:'http://www.bigbearplanetariums.ie/', img:'img/bigbear.png' },
+  { n:'05', title:'Big Bear Planetariums',     url:'https://www.bigbearplanetariums.ie/', img:'img/bigbear.jpg' },
   { n:'06', title:'Five Star Home Improvement',url:'https://www.5starhomeimprovements.ie/', img:'img/fivestar.jpg' },
   { n:'07', title:'Evolve Gym Equipment',      url:'https://www.evolvege.ie/', img:'img/evolve.jpg' },
   { n:'08', title:'Attics R Us',               url:'https://www.atticsrus.ie/', img:'img/attics.jpg' },
@@ -149,7 +149,7 @@ const CONFIG = {
    BOOK GEOMETRY — metres, matching the Blender scene the desk was baked in
    ===================================================================== */
 const PAGE_W = 0.30, PAGE_D = 0.16875;     // 16:9 leaf; spine at x=0, fore edge at +x, depth along z
-const LEAF_T = 0.0009, BOARD_T = 0.0025, OVER = 0.004;
+const LEAF_T = 0.0013, BOARD_T = 0.0025, OVER = 0.004;
 const SEGS = 40;
 const N_LEAVES = 11;                        // cover + 9 work leaves + back cover
 
@@ -161,7 +161,7 @@ const FRAMING = {
   portrait:  { closed: { el: 66, cx: 0.50, cy: 0.58, w: 0.86 }, open: { el: 76, cx: 0.50, cy: 0.52, w: 0.97 },
                focus:  { el: 80, cx: 0.50, cy: 0.50, w: 0.96 } },   // phones: one page zoomed to fill the width
 };
-const PENCIL = { x: -0.24, z: 0.2, turn: 35 };   // where the pencil lies (metres from the spine) and its angle in degrees
+const PENCIL = { x: -0.19, z: 0.165, turn: 28 };   // where the pencil lies (metres from the spine) and its angle in degrees
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -195,8 +195,8 @@ composer.addPass(new OutputPass());
    LIGHT — one desk lamp lights everything and casts the shadows
    ===================================================================== */
 const lamp = new THREE.SpotLight(0xeef4ff, CONFIG.lamp, 4, 0.36, 1, 2);
-lamp.position.set(0.15, 1.7, -0.35);
-lamp.target.position.set(0.12, 0, -0.02);
+lamp.position.set(0.06, 1.75, 0.04);   // almost straight overhead: a page standing up during a turn casts a short shadow, not a long black one
+lamp.target.position.set(0.04, 0, 0.0);
 lamp.castShadow = true;
 lamp.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
 lamp.shadow.bias = -0.00012; lamp.shadow.normalBias = 0.0015; lamp.shadow.radius = 5;
@@ -253,17 +253,18 @@ function buildDesk([map, normalMap]) {
 }
 /* a real pencil: black lacquered hexagonal body, sharpened cedar cone, graphite point */
 function pencil() {
-  const g = new THREE.Group(), r = 0.0036, L = 0.16, cone = 0.019;
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.32, envMapIntensity: 0.9 }));
-  body.rotation.z = Math.PI / 2;
-  const wood = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.32, r, cone, 6), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 0.8 }));
+  const g = new THREE.Group(), r = 0.0036, L = 0.15, cone = 0.026;
+  const lacquer = new THREE.MeshStandardMaterial({ color: 0x0a0a0b, roughness: 0.28, envMapIntensity: 1.2, flatShading: true });   // crisp hexagon facets
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6, 1), lacquer);
+  body.rotation.z = Math.PI / 2; body.rotation.x = Math.PI / 6;   // a flat side down, like a real pencil resting
+  const wood = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.34, r * 0.98, cone, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0xc8a27a, roughness: 0.8, side: THREE.DoubleSide }));
   wood.rotation.z = Math.PI / 2; wood.position.x = L / 2 + cone / 2;
-  const lead = new THREE.Mesh(new THREE.ConeGeometry(r * 0.32, 0.005, 12), new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.35, metalness: 0.6 }));
-  lead.rotation.z = -Math.PI / 2; lead.position.x = L / 2 + cone + 0.0025;
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.02, r * 1.02, 0.004, 6), new THREE.MeshStandardMaterial({ color: 0x9a9a9e, roughness: 0.3, metalness: 1 }));
-  cap.rotation.z = Math.PI / 2; cap.position.x = -L / 2 - 0.002;
-  g.add(body, wood, lead, cap);
-  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+  const lead = new THREE.Mesh(new THREE.ConeGeometry(r * 0.34, 0.007, 24), new THREE.MeshStandardMaterial({ color: 0x3a3a40, roughness: 0.25, metalness: 0.8 }));
+  lead.rotation.z = -Math.PI / 2; lead.position.x = L / 2 + cone + 0.0035;
+  const end = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.0012, 6), new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.5, flatShading: true }));
+  end.rotation.z = Math.PI / 2; end.rotation.x = Math.PI / 6; end.position.x = -L / 2 - 0.0006;
+  g.add(body, wood, lead, end);
+  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = false; } });   // no self-shadow: it flickered on the facets
   g.position.set(PENCIL.x, r * 0.87, PENCIL.z); g.rotation.y = THREE.MathUtils.degToRad(PENCIL.turn);
   return g;
 }
@@ -281,11 +282,12 @@ function softShadow(w, d, x, opacity) {
    ===================================================================== */
 function leafGeometry(w, d) {
   const g = new THREE.BufferGeometry(), cols = SEGS + 1, per = cols * 2;
-  const pos = new Float32Array(per * 2 * 3), uv = new Float32Array(per * 2 * 2), idx = [];
+  const pos = new Float32Array(per * 2 * 3), uv = new Float32Array(per * 2 * 2), gut = new Float32Array(per * 2), idx = [];
   for (let L = 0; L < 2; L++) for (let r = 0; r < 2; r++) for (let c = 0; c < cols; c++) {
     const i = L * per + r * cols + c;
     pos.set([(c / SEGS) * w, 0, r === 0 ? -d / 2 : d / 2], i * 3);
     uv.set([L === 0 ? c / SEGS : 1 - c / SEGS, r === 0 ? 1 : 0], i * 2);
+    gut[i] = c / SEGS;
   }
   for (let c = 0; c < SEGS; c++) { const a = c, b = c + 1, e = cols + c, f = cols + c + 1; idx.push(a, e, b, b, e, f); }
   const front = idx.length;
@@ -293,15 +295,20 @@ function leafGeometry(w, d) {
   g.setIndex(idx); g.addGroup(0, front, 0); g.addGroup(front, idx.length - front, 1);
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.setAttribute('gut', new THREE.BufferAttribute(gut, 1));
   g.computeVertexNormals();
   return g;
 }
 /* pages show the site's true colours (they glow like a screen, no grey sheen); as a page lifts and
    curls away from flat it darkens, the way a real sheet turns out of the lamp light */
 const pageShade = (sh) => {
-  sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float gut;\nvarying float vGut;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGut = gut;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vGut;')
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
     float facing = clamp(dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)), 0.0, 1.0);
-    totalEmissiveRadiance *= 0.42 + 0.58 * facing * facing;`);
+    float gutter = mix(0.5, 1.0, smoothstep(0.0, 0.13, vGut)) * mix(1.0, 0.88, smoothstep(0.93, 1.0, vGut));   // paper dips into the spine
+    totalEmissiveRadiance *= (0.42 + 0.58 * facing * facing) * gutter;`);
 };
 const screenMat = (map) => {
   const m = new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(CONFIG.pageBrightness, CONFIG.pageBrightness, CONFIG.pageBrightness), color: new THREE.Color(0.1, 0.1, 0.1), roughness: 1, metalness: 0, envMapIntensity: 0 });
@@ -313,12 +320,21 @@ const ease3 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Mat
 class Leaf {
   /* flex 1 = paper, ~0.3 = board. A turn runs p from 0 to 1: the fore edge lifts first and leads,
      the page bends as it is carried over, then the hinge catches up and it lays down flat. */
-  constructor(i, front, back, { w = PAGE_W, d = PAGE_D, flex = 1, frontMat, backMat } = {}) {
-    this.i = i; this.w = w; this.flex = flex;
+  constructor(i, front, back, { w = PAGE_W, d = PAGE_D, flex = 1, frontMat, backMat, board = null } = {}) {
+    this.i = i; this.w = w; this.d = d; this.flex = flex;
+    this.board = board;   // covers: which face is the outside (0 front, 1 back); that face sits BOARD_T proud of the other
     this.from = 0; this.to = 0; this.p = 1; this.turn = 0; this.dirty = true;
     this.geo = leafGeometry(w, d);
     this.mesh = new THREE.Mesh(this.geo, [frontMat || screenMat(front), backMat || screenMat(back)]);
     this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.userData.leaf = this;
+    if (board !== null) {   // the board's edges: both long sides, the fore edge and the hinge edge
+      const n = (SEGS + 1) * 4, idx = [];
+      for (let c = 0; c < SEGS; c++) { const a = c * 4, b = a + 4; idx.push(a, a + 1, b, a + 1, b + 1, b, a + 2, b + 2, a + 3, a + 3, b + 2, b + 3); }
+      for (const e of [0, SEGS * 4]) idx.push(e, e + 2, e + 1, e + 1, e + 2, e + 3);
+      this.edgeGeo = new THREE.BufferGeometry();
+      this.edgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); this.edgeGeo.setIndex(idx);
+      this.edges = new THREE.Mesh(this.edgeGeo, boardEdgeMat); this.edges.castShadow = true; this.edges.receiveShadow = true; this.edges.userData.leaf = this;
+    }
   }
   base(t) {
     const right = BOARD_T + (N_LEAVES - 1 - this.i) * LEAF_T, left = BOARD_T + this.i * LEAF_T;
@@ -336,18 +352,24 @@ class Leaf {
     const lift = Math.cos((hinge + fore) / 2);   // bow away from whichever stack the page is over
     this.turn = this.from + (this.to - this.from) * ease3((p - lag) / (1 - lag));
     const pos = this.geo.attributes.position.array, cols = SEGS + 1, per = cols * 2, ds = this.w / SEGS;
-    let x = 0, y = this.base(THREE.MathUtils.clamp(this.turn, 0, 1)) + 0.0003;
+    let x = 0, y = this.base(THREE.MathUtils.clamp(this.turn, 0, 1)) + 0.0003, a = hinge;
+    const out = this.board === null ? 0 : (this.board === 0 ? 1 : -1) * BOARD_T;   // outside face offset along the normal
+    const ep = this.edges ? this.edgeGeo.attributes.position.array : null, hd = this.d / 2;
     for (let c = 0; c <= SEGS; c++) {
       if (c > 0) {
         const s = c / SEGS;
-        const a = hinge + (fore - hinge) * Math.pow(s, 1.6) + bulge * lift * (s - s * s);   // lifted paper bows upward
+        a = hinge + (fore - hinge) * Math.pow(s, 1.6) + bulge * lift * (s - s * s);   // lifted paper bows upward
         x += ds * Math.cos(a); y += ds * Math.sin(a);
       }
-      const yy = Math.max(y, 0.0004);
-      for (const k of [c, cols + c, per + c, per + cols + c]) { pos[k * 3] = x; pos[k * 3 + 1] = yy; }
+      const yy = Math.max(y, 0.0004), ox = x - Math.sin(a) * out, oy = Math.max(yy + Math.cos(a) * out, 0.0002);
+      const [fx, fy, bx, by] = this.board === 0 ? [ox, oy, x, yy] : this.board === 1 ? [x, yy, ox, oy] : [x, yy, x, yy];
+      for (const k of [c, cols + c]) { pos[k * 3] = fx; pos[k * 3 + 1] = fy; }
+      for (const k of [per + c, per + cols + c]) { pos[k * 3] = bx; pos[k * 3 + 1] = by; }
+      if (ep) { const o = c * 12; ep.set([x, yy, -hd, ox, oy, -hd, x, yy, hd, ox, oy, hd], o); }
     }
     this.geo.attributes.position.needsUpdate = true;
     this.geo.computeVertexNormals(); this.geo.computeBoundingSphere();
+    if (ep) { this.edgeGeo.attributes.position.needsUpdate = true; this.edgeGeo.computeVertexNormals(); this.edgeGeo.computeBoundingSphere(); }
   }
 }
 
@@ -359,6 +381,7 @@ const leaves = [];
 let spread = 0, opened = false, busy = 0, focus = null;   // focus: 'left' | 'right' page zoomed on phones
 const parts = {};
 
+const boardEdgeMat = new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.7, envMapIntensity: 0.4, side: THREE.DoubleSide });
 function edgeTexture() {
   const c = document.createElement('canvas'); c.width = 8; c.height = 128; const g = c.getContext('2d');
   g.fillStyle = '#d9d5cc'; g.fillRect(0, 0, 8, 128);
@@ -368,17 +391,15 @@ function edgeTexture() {
 
 function buildBook(T) {
   const bw = PAGE_W + OVER, bd = PAGE_D + OVER * 2;
-  leaves.push(new Leaf(0, null, null, { w: bw, d: bd, flex: 0.3, frontMat: coverMat(T.cover), backMat: screenMat(T.contents) }));
+  leaves.push(new Leaf(0, null, null, { w: bw, d: bd, flex: 0.3, frontMat: coverMat(T.cover), backMat: screenMat(T.contents), board: 0 }));
   for (let k = 0; k < 9; k++) leaves.push(new Leaf(k + 1, T.works[2 * k], T.works[2 * k + 1]));
-  leaves.push(new Leaf(10, null, null, { w: bw, d: bd, flex: 0.3, frontMat: screenMat(T.end), backMat: coverMat(T.coverback) }));
-  leaves.forEach(l => book.add(l.mesh));
+  leaves.push(new Leaf(10, null, null, { w: bw, d: bd, flex: 0.3, frontMat: screenMat(T.end), backMat: coverMat(T.coverback), board: 1 }));
+  leaves.forEach(l => { book.add(l.mesh); if (l.edges) book.add(l.edges); });
 
   const cloth = new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.6, envMapIntensity: 0.5 });
-  const edge = new THREE.MeshStandardMaterial({ map: edgeTexture(), roughness: 0.9 });
+  const edgeMap = edgeTexture(); const edge = new THREE.MeshStandardMaterial({ map: edgeMap, emissiveMap: edgeMap, emissive: new THREE.Color(0.32, 0.32, 0.32), roughness: 0.9 });   // paper edges read light, like a real page block
   const full = N_LEAVES * LEAF_T + BOARD_T * 2;
   const mk = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; book.add(m); return m; };
-  parts.board = mk(new THREE.BoxGeometry(bw, BOARD_T, bd), cloth); parts.board.position.set(bw / 2, BOARD_T / 2, 0);
-  parts.boardL = mk(new THREE.BoxGeometry(bw, BOARD_T, bd), cloth); parts.boardL.position.set(-bw / 2, BOARD_T / 2, 0);
   parts.spine = mk(new THREE.BoxGeometry(BOARD_T * 1.6, full, bd), cloth); parts.spine.position.set(-BOARD_T * 0.6, full / 2, 0);
   parts.block = mk(new THREE.BoxGeometry(PAGE_W - 0.002, 1, PAGE_D - 0.002), edge);
   parts.blockL = mk(new THREE.BoxGeometry(PAGE_W - 0.002, 1, PAGE_D - 0.002), edge);
@@ -394,8 +415,7 @@ function stacks() {
   const place = (m, n, x) => { const h = Math.max(0, n - 1) * LEAF_T; m.visible = h > 0.0002; m.scale.y = Math.max(h - 0.0002, 0.0001); m.position.set(x, BOARD_T + m.scale.y / 2, 0); };
   place(parts.block, right, PAGE_W / 2); place(parts.blockL, left, -PAGE_W / 2);
   let anyRight = 0, anyLeft = 0; for (const l of leaves) (l.turn < 0.5 ? anyRight++ : anyLeft++);
-  parts.board.visible = anyRight > 0 || right > 0; parts.boardL.visible = anyLeft > 0 || left > 0;
-  parts.shR.material.opacity = parts.board.visible ? 0.75 : 0; parts.shL.material.opacity = parts.boardL.visible ? 0.75 : 0;
+  parts.shR.material.opacity = anyRight > 0 ? 0.75 : 0; parts.shL.material.opacity = anyLeft > 0 ? 0.75 : 0;
 }
 
 /* =====================================================================
@@ -415,14 +435,13 @@ function go(s) {
     gsap.killTweensOf(l);
     l.from = l.turn; l.to = i < s ? 1 : 0; l.p = 0;
     gsap.to(l, { p: 1, duration: reduceMotion ? 0.01 : CONFIG.flipSeconds, delay: k * CONFIG.cascadeGap, ease: 'none',
-      onUpdate: () => { l.dirty = true; }, onComplete: () => { busy = Math.max(0, busy - 1); l.dirty = true; l.update(); stacks(); } });
+      onUpdate: () => { l.dirty = true; }, onComplete: () => { busy = Math.max(0, busy - 1); l.dirty = true; l.update(); stacks(); if (!busy) playFocus(); } });
   });
   spread = s;
   const open = s > 0 && s < SPREADS;
   if (!open && focus) { focus = null; if (open === opened) moveCamera(); }
   if (open !== opened) { opened = open; moveCamera(); if (open && phoneMode() && !zoomHinted) { zoomHinted = true; showZoomHint(); } }
   ui();
-  if (focus) setTimeout(playFocus, (reduceMotion ? 0 : CONFIG.flipSeconds * 1000) + 60);
 }
 /* phones: zoom to one page, play it like a hover */
 const phoneMode = () => touchOnly && portrait();
@@ -430,14 +449,13 @@ function pageFace(side) {   // the leaf face showing on that side of the open sp
   const i = side === 'left' ? spread - 1 : spread;
   return i >= 0 && i < N_LEAVES ? { leaf: leaves[i], face: side === 'left' ? 1 : 0 } : null;
 }
-function playFocus() {
-  if (!focus || busy) return;
-  const f = pageFace(focus);
-  if (f && workOn(f.leaf.i, f.face) && !(hover && hover.leaf === f.leaf && hover.face === f.face)) { stopHover(); startHover(f); }
+function playFocus() {   // phones have no hover, so both pages of the open spread play on their own
+  if (!touchOnly || !opened || busy) return;
+  for (const side of ['left', 'right']) { const f = pageFace(side); if (f && workOn(f.leaf.i, f.face)) startHover(f); }
 }
 function setFocus(side) {
   if (side === focus) return;
-  focus = side; stopHover(); moveCamera(0.9); playFocus(); ui();
+  focus = side; moveCamera(0.9); playFocus(); ui();
 }
 /* step one page at a time when zoomed in, a spread at a time otherwise */
 function step(d) {
@@ -503,7 +521,6 @@ function placeCamera(dt) {
    HOVER — a page plays: tall sites scroll, short ones drift
    ===================================================================== */
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-let hover = null;   // { leaf, face, work, tex, start }
 const fullTex = new Map();
 function workOn(leafIndex, face) {
   if (leafIndex < 1 || leafIndex > 9) return null;
@@ -512,50 +529,61 @@ function workOn(leafIndex, face) {
 function pick(cx, cy) {
   ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  const hits = ray.intersectObjects([...leaves.map(l => l.mesh), parts.block, parts.blockL, parts.board, parts.boardL].filter(Boolean), false);
+  const hits = ray.intersectObjects([...leaves.map(l => l.mesh), ...leaves.map(l => l.edges), parts.block, parts.blockL].filter(Boolean), false);
   return hits[0] || null;
 }
 function faceAt(hit) {
-  const l = hit?.object.userData.leaf; if (!l || !opened || busy) return null;
+  const l = hit?.object.userData.leaf; if (!l || hit.object !== l.mesh || !opened || busy) return null;
   const face = hit.face.materialIndex;      // 0 front (right page), 1 back (left page)
   if (face === 0 && l.i !== spread) return null;
   if (face === 1 && l.i !== spread - 1) return null;
   return { leaf: l, face, uv: hit.uv };
 }
+/* plays: pages currently showing their full site in motion (the hovered page on laptops, both pages on phones) */
+let plays = [];
+const playing = (f) => plays.some(pl => pl.leaf === f.leaf && pl.face === f.face);
 async function startHover(f) {
   const work = workOn(f.leaf.i, f.face);
-  if (!work) return;
-  hover = { ...f, work, start: performance.now(), base: f.leaf.mesh.material[f.face].map };   // map and emissiveMap are the same image
+  if (!work || playing(f)) return;
+  const pl = { ...f, work, start: performance.now(), base: f.leaf.mesh.material[f.face].map, live: true };   // map and emissiveMap are the same image
+  plays.push(pl);
   let t = fullTex.get(work.img);
   if (!t) {
     t = await tex(work.img); fullTex.set(work.img, t);
-    while (fullTex.size > 3) { const [k, old] = fullTex.entries().next().value; if (old === hover?.tex) break; old.dispose(); fullTex.delete(k); }   // keep GPU memory low on phones
+    for (const [k, old] of [...fullTex]) {   // keep GPU memory low on phones: at most four full screenshots
+      if (fullTex.size <= 4) break;
+      if (!plays.some(q => q.tex === old) && old !== t) { old.dispose(); fullTex.delete(k); }
+    }
   }
-  if (!hover || hover.work !== work) return;
+  if (!pl.live) return;
   const im = t.image, win = Math.min(1, (im.width * PAGE_D / PAGE_W) / im.height);
-  hover.tex = t; hover.win = win;
+  pl.tex = t; pl.win = win;
   t.repeat.set(1, win); t.offset.set(0, 1 - win);
   const hm = f.leaf.mesh.material[f.face]; hm.map = t; hm.emissiveMap = t; hm.needsUpdate = true;
 }
 function stopHover() {
-  if (!hover) return;
-  const m = hover.leaf.mesh.material[hover.face];
-  m.map = hover.base; m.emissiveMap = hover.base; m.needsUpdate = true; hover = null;
+  for (const pl of plays) {
+    pl.live = false;
+    if (pl.tex) { const m = pl.leaf.mesh.material[pl.face]; m.map = pl.base; m.emissiveMap = pl.base; m.needsUpdate = true; }
+  }
+  plays = [];
   tip.classList.remove('on'); canvas.style.cursor = 'default';
 }
 function tickHover() {
-  if (!hover?.tex) return;
-  const el = (performance.now() - hover.start) / 1000, t = hover.tex;
-  if (hover.win < 0.98) {
-    // scroll down the page, rest at the bottom, glide back up
-    const travel = 1 - hover.win, dur = travel / CONFIG.hoverScrollSpeed + 1.2;
-    const p = (el % (dur * 2)) / dur, k = p < 1 ? p : 2 - p;
-    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-    t.offset.y = (1 - hover.win) * (1 - e);
-  } else {
-    // short pages: a slow push-in
-    const z = 1 - 0.06 * (0.5 - 0.5 * Math.cos(el * 0.5));
-    t.repeat.set(z, z * hover.win); t.offset.set((1 - z) / 2, (1 - z * hover.win) / 2);
+  for (const pl of plays) {
+    if (!pl.tex) continue;
+    const el = (performance.now() - pl.start) / 1000, t = pl.tex;
+    if (pl.win < 0.98) {
+      // scroll down the page, rest at the bottom, glide back up
+      const travel = 1 - pl.win, dur = travel / CONFIG.hoverScrollSpeed + 1.2;
+      const p = (el % (dur * 2)) / dur, k = p < 1 ? p : 2 - p;
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      t.offset.y = (1 - pl.win) * (1 - e);
+    } else {
+      // short pages: a slow push-in
+      const z = 1 - 0.06 * (0.5 - 0.5 * Math.cos(el * 0.5));
+      t.repeat.set(z, z * pl.win); t.offset.set((1 - z) / 2, (1 - z * pl.win) / 2);
+    }
   }
 }
 
@@ -570,8 +598,7 @@ canvas.addEventListener('pointermove', (e) => {
   const hit = pick(e.clientX, e.clientY);
   const f = faceAt(hit);
   if (!opened) { canvas.style.cursor = hit ? 'pointer' : 'default'; return; }
-  const same = f && hover && hover.leaf === f.leaf && hover.face === f.face;
-  if (!same) { stopHover(); if (f && workOn(f.leaf.i, f.face)) startHover(f); }
+  if (!(f && playing(f))) { stopHover(); if (f && workOn(f.leaf.i, f.face)) startHover(f); }
   const showTip = f && (workOn(f.leaf.i, f.face) || (f.leaf.i === 0 && f.face === 1));
   canvas.style.cursor = hit ? 'pointer' : 'default';
   tip.textContent = f && f.leaf.i === 0 ? 'Jump to project' : 'View site ↗';
