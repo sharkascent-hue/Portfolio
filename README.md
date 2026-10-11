@@ -8,9 +8,10 @@ site scroll, click a page to visit it.
 ```
 index.html              the whole page: scene, book, turns, hover, links
 three.module.min.js     three.js r160
-vendor/three-addons/    bloom post-processing and MarchingCubes (the lava) from three.js r160
+vendor/three-addons/    bloom post-processing from three.js r160
 gsap.min.js             GSAP 3.15 for camera moves, turns and the intro
 img/pages/*.webp        every printed page (cover, contents, 18 projects, end) and the two business cards
+img/logo-shape.json     the logo's outlines (letters, arrow, flask liquid) traced from img/logo.png for the 3D logo light
 img/*.jpg|png           full-page screenshots that play on hover
 render/                 page-face scripts (and the old Blender desk scripts)
 pages.html              draws the printed pages; render/faces.mjs captures them
@@ -20,9 +21,9 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 
 - **Projects, names, links, hover screenshots**: the `WORKS` list at the top of the script.
 - **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, wood darkness, page brightness, hover scroll speed.
-- **Things on the desk**: the `PROPS` block — where the pencil, the business cards and the lava lamp sit,
-  their angle, the lamp's size and how much green light it throws (`glow`). The lamp has its own spot on phones
-  and stays on the desk while the book is open. Click the lamp to switch it off, the cards to flip them, the pencil to roll it.
+- **Things on the desk**: the `PROPS` block — where the pencil, the business cards and the 3D logo light sit,
+  their angle, the logo's width and how much it lights the wood (`glow`). The logo and cards have their own spots on phones.
+  Click the logo to switch it off and on, the cards to flip them, the pencil to roll it.
 - **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
   for laptops and phones. The camera works out its own position from these on every screen size.
   `focus` is the zoomed-in single page on phones. `LENS` sets how long the lens is: lower means flatter, less looming.
