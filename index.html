@@ -46,6 +46,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 .bar a .go{opacity:.6;font-size:13px}
 .bar .sep{width:1px;height:18px;background:rgba(255,255,255,.12)}
 .bar a.empty{display:none}
+.bar a .t{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .hint{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:9;font:400 12px/1 var(--sans);color:var(--muted);letter-spacing:.02em;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;gap:10px;opacity:0;white-space:nowrap}
 .hint i{display:block;width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
@@ -61,7 +62,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 @media (max-width:720px){
   .nav{padding:18px}.logo{height:18px}.cta{padding:10px 12px;font-size:12px}
   .hero{left:18px;right:18px;top:84px}.hero p{font-size:12px}
-  .bar{bottom:18px;max-width:calc(100% - 24px);overflow:auto;scrollbar-width:none}.bar::-webkit-scrollbar{display:none}.bar a{padding:0 10px}
+  .bar{bottom:18px;width:calc(100% - 24px);max-width:440px;justify-content:space-between}.bar a{padding:0 10px;flex:1 1 0;min-width:0;justify-content:center}.bar a.dim{display:none}   /* names shorten with … ; zoomed in, only that page's project shows */
   .hint{bottom:22px}
 }
 @media (prefers-reduced-motion:reduce){.hint i{animation:none}}
@@ -104,6 +105,7 @@ import { EffectComposer } from './vendor/three-addons/postprocessing/EffectCompo
 import { RenderPass } from './vendor/three-addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from './vendor/three-addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './vendor/three-addons/postprocessing/OutputPass.js';
+import { MarchingCubes } from './vendor/three-addons/objects/MarchingCubes.js';
 
 /* =====================================================================
    THE WORK — order is the order in the book. `img` is the full-page
@@ -138,8 +140,8 @@ const CONFIG = {
   cascadeGap: 0.06,        // seconds between leaves when jumping several pages
   cameraSeconds: 1.7,      // the dolly in when the book opens
   bloom: { strength: 0.22, radius: 0.45, threshold: 0.98 },
-  pageBrightness: 0.93,    // how bright the printed sites are (1 = exactly the site's colours)
-  pageGloss: 0.45,         // how glossy the paper is (0 matte … 1 very shiny)
+  pageBrightness: 1.0,     // how bright the printed sites are (1 = exactly the site's colours)
+  pageGloss: 0.18,         // how glossy the paper is (0 matte … 1 very shiny); keep low so the print stays easy to read
   lamp: 9,                 // the desk lamp: lights the wood, the book and casts the shadows
   desk: 0.1,               // brightness of the wood (the texture is darkened by this)
   parallax: 0.018,         // how much the camera follows the mouse
@@ -166,7 +168,13 @@ const FRAMING = {
   portrait:  { closed: { el: 66, cx: 0.50, cy: 0.58, w: 0.86 }, open: { el: 76, cx: 0.50, cy: 0.52, w: 0.97 },
                focus:  { el: 80, cx: 0.50, cy: 0.50, w: 0.96 } },   // phones: one page zoomed to fill the width
 };
-const PENCIL = { x: -0.19, z: 0.165, turn: 28 };   // where the pencil lies (metres from the spine) and its angle in degrees
+/* PROPS — where things sit on the desk: metres from the book's spine (x right, z towards you), turn in degrees */
+const PROPS = {
+  pencil:   { x: -0.19, z: 0.165, turn: 28 },
+  cards:    { x: 0.29, z: 0.17, turn: -14 },    // two AlmLab business cards, fanned; clicking them opens Get in Touch
+  lavaLamp: { x: 0.25, z: -0.25, size: 0.9, glow: 0.035,   // neon-green lava lamp; glow = how much green light it throws on the desk
+              phone: { x: 0.2, z: -0.3 } },              // where it stands on phones (upright screens), above the book
+};
 const LENS = { landscape: 34, portrait: 22 };   // field of view in degrees across the long side of the frame; lower = longer lens, less looming
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -218,7 +226,6 @@ function studio() {
   panel(2.6, 0.35, 0x8a8f9a, 0.05, 1.95, -0.95, Math.PI / 2);
   panel(2.6, 0.35, 0xc9ced8, 0.05, 1.95, -1.25, Math.PI / 2);
   panel(2.6, 0.35, 0x8a8f9a, 0.05, 1.95, -1.55, Math.PI / 2);
-  panel(0.5, 0.5, 0xffffff, 0.06, 1.98, 0.04, Math.PI / 2);   // the lamp head itself, small
   panel(0.6, 2.0, 0x1a2030, -2.8, 1.0, 0.5, 0);
   const pm = new THREE.PMREMGenerator(renderer);
   const env = pm.fromScene(room, 0.03).texture; pm.dispose(); return env;
@@ -261,21 +268,155 @@ function buildDesk([map, normalMap]) {
   scene.add(pencil());
 }
 /* a real pencil: black lacquered hexagonal body, sharpened cedar cone, graphite point */
+/* a real sharpened pencil: black lacquered hexagon, the sharpener's cone cuts scallops into the paint,
+   bare cedar, then the graphite point. One mesh, three materials. */
 function pencil() {
-  const g = new THREE.Group(), r = 0.0036, L = 0.15, cone = 0.026;
-  const lacquer = new THREE.MeshStandardMaterial({ color: 0x0a0a0b, roughness: 0.28, envMapIntensity: 1.2, flatShading: true });   // crisp hexagon facets
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 6, 1), lacquer);
-  body.rotation.z = Math.PI / 2; body.rotation.x = Math.PI / 6;   // a flat side down, like a real pencil resting
-  const wood = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.34, r * 0.98, cone, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0xc8a27a, roughness: 0.8, side: THREE.DoubleSide }));
-  wood.rotation.z = Math.PI / 2; wood.position.x = L / 2 + cone / 2;
-  const lead = new THREE.Mesh(new THREE.ConeGeometry(r * 0.34, 0.007, 24), new THREE.MeshStandardMaterial({ color: 0x3a3a40, roughness: 0.25, metalness: 0.8 }));
-  lead.rotation.z = -Math.PI / 2; lead.position.x = L / 2 + cone + 0.0035;
-  const end = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.0012, 6), new THREE.MeshStandardMaterial({ color: 0x1c1c1e, roughness: 0.5, flatShading: true }));
-  end.rotation.z = Math.PI / 2; end.rotation.x = Math.PI / 6; end.position.x = -L / 2 - 0.0006;
-  g.add(body, wood, lead, end);
-  g.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = false; } });   // no self-shadow: it flickered on the facets
-  g.position.set(PENCIL.x, r * 0.87, PENCIL.z); g.rotation.y = THREE.MathUtils.degToRad(PENCIL.turn);
-  return g;
+  const P = PROPS.pencil, R = 0.0038, ri = R * Math.cos(Math.PI / 6), L = 0.15, cone = 0.026, leadR = 0.00105, NA = 96;
+  const hexR = (th) => { const f = ((th % (Math.PI / 3)) + Math.PI / 3) % (Math.PI / 3) - Math.PI / 6; return ri / Math.cos(f); };   // flat faces at 0°, 60°…
+  const pos = [], groups = [[], [], []], x0 = L / 2;
+  const ring = (x, r) => { const start = pos.length / 3, kinds = []; for (let a = 0; a <= NA; a++) { const th = (a / NA) * Math.PI * 2, hr = hexR(th), rr = Math.min(hr, r); pos.push(x, rr * Math.cos(th), rr * Math.sin(th)); kinds.push(r >= hr ? 0 : r > leadR ? 1 : 2); } return { start, kinds }; };
+  const band = (A, B) => { for (let a = 0; a < NA; a++) { const k = Math.max(A.kinds[a], A.kinds[a + 1], B.kinds[a], B.kinds[a + 1]), i0 = A.start + a, i1 = B.start + a; groups[k].push(i0, i1, i0 + 1, i0 + 1, i1, i1 + 1); } };
+  band(ring(-L / 2, 1), ring(x0, 1));                                   // the painted body
+  let prev = ring(x0, R);                                               // the sharpened end
+  for (let k = 1; k <= 60; k++) { const x = x0 + cone * k / 60, cur = ring(x, R * (1 - k / 60) + 1e-5); band(prev, cur); prev = cur; }
+  const capC = pos.length / 3; pos.push(-L / 2, 0, 0); const cap = ring(-L / 2, 1);   // flat painted end
+  for (let a = 0; a < NA; a++) groups[0].push(capC, cap.start + a + 1, cap.start + a);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const idx = [...groups[0], ...groups[1], ...groups[2]]; g.setIndex(idx);
+  g.addGroup(0, groups[0].length, 0); g.addGroup(groups[0].length, groups[1].length, 1); g.addGroup(groups[0].length + groups[1].length, groups[2].length, 2);
+  g.computeVertexNormals();
+  const mats = [
+    new THREE.MeshPhysicalMaterial({ color: 0x0b0b0c, roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 1.4 }),   // lacquer
+    new THREE.MeshStandardMaterial({ color: 0xd9b48a, roughness: 0.85, envMapIntensity: 0.3 }),                                          // cedar
+    new THREE.MeshStandardMaterial({ color: 0x2c2c31, roughness: 0.3, metalness: 0.7, envMapIntensity: 1 }),                             // graphite
+  ];
+  const m = new THREE.Mesh(g, mats); m.castShadow = true; m.userData.prop = 'pencil'; clickable.push(m);
+  const grp = new THREE.Group(); grp.add(m, contactShadow(L + cone + 0.02, 0.022, 0.55));
+  grp.position.set(P.x, ri + 0.0002, P.z); grp.rotation.y = THREE.MathUtils.degToRad(P.turn);
+  m.position.y = 0; grp.children[1].position.y = -ri + 0.0001;
+  pencilRig = { grp, m, ri, dir: 1, spin: 0 };
+  return grp;
+}
+let pencilRig = null;
+function rollPencil() {   // it rolls across the desk on its six faces, then settles flat
+  const P = pencilRig; if (!P || gsap.isTweening(P)) return;
+  const turns = 1 + 2 / 6, dist = turns * 6 * (P.ri * 2 / Math.sqrt(3)), a = THREE.MathUtils.degToRad(PROPS.pencil.turn);
+  const sx = P.grp.position.x, sz = P.grp.position.z, s0 = P.spin, d = P.dir; P.dir = -P.dir;
+  gsap.to(P, { spin: s0 + d * turns * Math.PI * 2, duration: 1.4, ease: 'power2.out', onUpdate: () => {
+    const k = (P.spin - s0) / (turns * Math.PI * 2) * d;   // 0 → 1 of the roll
+    P.grp.position.set(sx + Math.sin(a) * dist * k * d, P.grp.position.y, sz + Math.cos(a) * dist * k * d);
+    P.m.rotation.x = -P.spin;
+    const f = (((P.spin % (Math.PI / 3)) + Math.PI / 3) % (Math.PI / 3)) - Math.PI / 6;   // a hexagon bumps up onto its edges
+    P.m.position.y = P.ri * (1 / Math.cos(f) - 1);
+  } });
+}
+/* a soft blurred shadow under small things, so they sit on the desk */
+function contactShadow(w, d, opacity) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d');
+  g.filter = 'blur(10px)'; g.fillStyle = '#000'; g.beginPath(); g.roundRect(24, 18, 208, 28, 14); g.fill();
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity, depthWrite: false, color: 0x000000 }));
+  m.rotation.x = -Math.PI / 2; m.renderOrder = 1; return m;
+}
+let cardRig = null;
+function flipCard() {   // the top card lifts, turns over in the air and lands showing its other side
+  const C = cardRig; if (!C || gsap.isTweening(C.black.rotation)) return;
+  C.flipped = !C.flipped;
+  const y = C.flipped ? 2 * C.t + 0.0002 : C.t + 0.0001;
+  gsap.timeline()
+    .to(C.black.position, { y: 0.045, duration: 0.35, ease: 'power2.out' })
+    .to(C.black.rotation, { x: C.flipped ? Math.PI : 0, duration: 0.6, ease: 'power2.inOut' }, 0.12)
+    .to(C.black.position, { y, duration: 0.4, ease: 'bounce.out' }, 0.62);
+}
+/* two business cards, fanned, like the reel: click to flip, click again to get in touch */
+const clickable = [];
+function businessCards(front, back) {
+  const C = PROPS.cards, w = 0.085, h = 0.055, t = 0.0005, r = 0.0032;
+  const shape = new THREE.Shape(); shape.moveTo(-w / 2 + r, -h / 2);
+  shape.lineTo(w / 2 - r, -h / 2); shape.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r); shape.lineTo(w / 2, h / 2 - r); shape.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+  shape.lineTo(-w / 2 + r, h / 2); shape.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r); shape.lineTo(-w / 2, -h / 2 + r); shape.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: t, bevelEnabled: false, curveSegments: 6 }).toNonIndexed();
+  const p = geo.attributes.position, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) { const top = p.getZ(i) > t / 2; uv[i * 2] = p.getX(i) / w + 0.5; uv[i * 2 + 1] = top ? p.getY(i) / h + 0.5 : 0.5 - p.getY(i) / h; }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geo.clearGroups();   // material 0: top face, 1: edges, 2: underside
+  let cur = -1, start = 0;
+  for (let f = 0; f < p.count / 3; f++) {
+    const z = [0, 1, 2].map(k => p.getZ(f * 3 + k)), kind = z.every(v => v > t - 1e-7) ? 0 : z.every(v => v < 1e-7) ? 2 : 1;
+    if (kind !== cur) { if (cur >= 0) geo.addGroup(start * 3, (f - start) * 3, cur); cur = kind; start = f; }
+  }
+  geo.addGroup(start * 3, (p.count / 3 - start) * 3, cur);
+  geo.rotateX(-Math.PI / 2); geo.computeVertexNormals();
+  const face = (map, gloss) => new THREE.MeshPhysicalMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.22, 0.22, 0.22), roughness: 0.55, clearcoat: gloss, clearcoatRoughness: 0.3, envMapIntensity: 0.8 });
+  const grp = new THREE.Group();
+  const edge = new THREE.MeshStandardMaterial({ color: 0xe9e7e1, roughness: 0.8 });   // each card: black logo side, white details side
+  const white = new THREE.Mesh(geo, [face(back, 0.1), edge, face(front, 0.35)]);
+  const black = new THREE.Mesh(geo, [face(front, 0.35), edge, face(back, 0.1)]);
+  white.position.set(0.012, 0, 0.008); white.rotation.y = THREE.MathUtils.degToRad(-16);
+  black.position.set(-0.01, t + 0.0001, -0.006); black.rotation.order = 'YXZ'; black.rotation.y = THREE.MathUtils.degToRad(9);   // flips over its own long edge
+  for (const m of [white, black]) { m.castShadow = true; m.receiveShadow = true; m.userData.prop = 'cards'; clickable.push(m); }
+  cardRig = { black, t, flipped: false };
+  const sh = contactShadow(0.13, 0.085, 0.6); sh.position.y = 0.0001;
+  grp.add(sh, white, black); grp.position.set(C.x, 0.0002, C.z); grp.rotation.y = THREE.MathUtils.degToRad(C.turn);
+  scene.add(grp);
+}
+/* a lava lamp: gunmetal base and cap, a glass bottle, glossy neon-green wax that pools at the bottom,
+   swells, stretches off in blobs that drift up, cool at the top and sink back. Click it to switch it on or off. */
+let lava = null;
+function lavaLamp() {
+  const P = PROPS.lavaLamp, grp = new THREE.Group();
+  const metal = new THREE.MeshPhysicalMaterial({ color: 0x9a9da4, metalness: 1, roughness: 0.3, envMapIntensity: 1.8, clearcoat: 0.5, clearcoatRoughness: 0.25 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.052, 0.085, 96, 1), metal); base.position.y = 0.0425;
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.053, 0.054, 0.005, 96), metal); foot.position.y = 0.0025;
+  const prof = [], H = 0.17, y0 = 0.085, radius = (t) => Math.max(0.017, 0.029 + 0.016 * Math.sin(Math.PI * Math.pow(t, 0.8)) - 0.011 * t);
+  for (let k = 0; k <= 48; k++) { const t = k / 48; prof.push(new THREE.Vector2(radius(t), y0 + t * H)); }
+  const glass = new THREE.Mesh(new THREE.LatheGeometry(prof, 128), new THREE.MeshPhysicalMaterial({
+    color: 0xf2fff5, transmission: 1, thickness: 0.01, roughness: 0.02, ior: 1.45, envMapIntensity: 1.4,
+    attenuationColor: new THREE.Color(0xd6ffe2), attenuationDistance: 1.5, specularIntensity: 1,
+  }));
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.019, 0.05, 96), metal); cap.position.y = y0 + H + 0.025;
+  const waxMat = new THREE.MeshPhysicalMaterial({ color: 0x0f5a24, emissive: 0x22ff66, emissiveIntensity: 1.1, roughness: 0.14, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2 });
+  const wax = new MarchingCubes(52, waxMat, false, false, 60000);
+  const R = 0.042; wax.isolation = 80; wax.position.y = y0 + H / 2; wax.scale.set(R, H / 2 * 0.97, R);
+  const light = new THREE.PointLight(0x2dff6a, P.glow, 0.45, 2); light.position.y = y0 + H * 0.4;
+  for (const m of [base, foot, cap]) { m.castShadow = true; m.receiveShadow = true; }
+  for (const m of [base, foot, cap, glass]) { m.userData.prop = 'lamp'; clickable.push(m); }
+  grp.add(foot, base, glass, cap, wax, light, contactShadow(0.13, 0.13, 0.5));
+  grp.scale.setScalar(P.size); scene.add(grp);
+  // room for wax at each height, as a fraction of the cube (the bottle narrows at both ends)
+  const room = (y) => Math.max(0, radius(THREE.MathUtils.clamp(y, 0, 1)) - 0.02) / (2 * R) * 0.85;   // how far a blob's centre may wander at each height
+  // the liquid the wax floats in: faintly lit green, slightly smaller than the glass
+  const liquid = new THREE.Mesh(new THREE.LatheGeometry(prof.map(v => new THREE.Vector2(v.x * 0.93, v.y)), 96),
+    new THREE.MeshBasicMaterial({ color: 0x1f8a45, transparent: true, opacity: 0.28, depthWrite: false, blending: THREE.AdditiveBlending }));
+  const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.028, 64), new THREE.MeshBasicMaterial({ color: 0xbfffd2 }));   // the bulb glowing up through the bottom
+  bulb.rotation.x = -Math.PI / 2; bulb.position.y = y0 + 0.0008;
+  grp.add(liquid, bulb);
+  lava = { grp, wax, waxMat, light, liquid, bulb, room, level: 1, on: true, clock: 0, blobs: Array.from({ length: 5 }, (_, i) => ({
+    period: 26 + ((i * 7) % 5) * 6, phase: i * 1.37, drift: 0.4 + (i % 3) * 0.25, size: 0.85 + ((i * 53) % 7) / 18 })) };
+}
+function placeLava() { if (!lava) return; const P = PROPS.lavaLamp, q = portrait() ? P.phone : P; lava.grp.position.set(q.x, 0, q.z); }
+function toggleLamp() {
+  if (!lava) return; lava.on = !lava.on;
+  gsap.to(lava, { level: lava.on ? 1 : 0, duration: lava.on ? 2.2 : 1.6, ease: lava.on ? 'power2.in' : 'power2.out' });
+}
+function tickLava(dt) {
+  if (!lava) return;
+  const L = lava, { wax, blobs } = L;
+  L.clock += dt * (0.15 + 0.85 * L.level);   // the wax slows as it cools
+  L.waxMat.emissiveIntensity = 0.05 + 1.05 * L.level; L.light.intensity = PROPS.lavaLamp.glow * L.level; L.liquid.material.opacity = 0.04 + 0.24 * L.level; L.bulb.material.color.setRGB(0.05 + 0.7 * L.level, 0.06 + 0.94 * L.level, 0.05 + 0.77 * L.level);
+  wax.reset();
+  wax.addBall(0.5, 0.0, 0.5, 1.15 + 0.12 * Math.sin(L.clock * 0.35), 12);       // the warm pool at the bottom, gently swelling
+  wax.addBall(0.5, 1.0, 0.5, 0.35, 12);                                          // a little cooled wax stuck at the top
+  for (const b of blobs) {
+    const c = ((L.clock / b.period + b.phase) % 1 + 1) % 1;                       // one trip: rise, rest, sink, rest
+    const up = c < 0.45 ? THREE.MathUtils.smootherstep(c / 0.45, 0, 1) : c < 0.55 ? 1 : c < 0.95 ? 1 - THREE.MathUtils.smootherstep((c - 0.55) / 0.4, 0, 1) : 0;
+    const y = 0.12 + 0.76 * up, r = L.room(y);
+    const x = 0.5 + r * Math.sin(L.clock * 0.11 * b.drift + b.phase * 3), z = 0.5 + r * Math.cos(L.clock * 0.09 * b.drift + b.phase * 2);
+    const st = 0.5 * b.size * (0.85 + 0.15 * Math.sin(L.clock * 0.5 + b.phase));
+    wax.addBall(x, y, z, st, 12);
+    if (y < 0.3 || y > 0.72) wax.addBall(0.5 + (x - 0.5) * 0.5, y < 0.3 ? y * 0.5 : (y + 1) / 2, 0.5 + (z - 0.5) * 0.5, st * 0.45, 12);   // the neck as it pulls away
+  }
+  wax.update();
 }
 function softShadow(w, d, x, opacity) {
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
@@ -316,7 +457,7 @@ const pageShade = (sh) => {
   sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vGut;')
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
     float facing = clamp(dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)), 0.0, 1.0);
-    float gutter = mix(0.5, 1.0, smoothstep(0.0, 0.13, vGut)) * mix(1.0, 0.88, smoothstep(0.93, 1.0, vGut));   // paper dips into the spine
+    float gutter = mix(0.62, 1.0, smoothstep(0.0, 0.11, vGut)) * mix(1.0, 0.88, smoothstep(0.93, 1.0, vGut));   // paper dips into the spine
     totalEmissiveRadiance *= (0.42 + 0.58 * facing * facing) * gutter;`)
     .replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
     #if defined( USE_SHADOWMAP ) && NUM_SPOT_LIGHT_SHADOWS > 0
@@ -329,7 +470,7 @@ const screenMat = (map) => {
   const b = CONFIG.pageBrightness;
   const m = new THREE.MeshPhysicalMaterial({
     map, emissiveMap: map, emissive: new THREE.Color(b, b, b), color: new THREE.Color(0.1, 0.1, 0.1), roughness: 1, metalness: 0,
-    clearcoat: CONFIG.pageGloss, clearcoatRoughness: 0.2, envMapIntensity: 1,   // printed on lightly glossy stock
+    clearcoat: CONFIG.pageGloss, clearcoatRoughness: 0.3, envMapIntensity: 1,   // printed on lightly glossy stock
   });
   m.onBeforeCompile = pageShade; return m;
 };
@@ -572,6 +713,11 @@ function pick(cx, cy) {
   const hits = ray.intersectObjects([...leaves.map(l => l.mesh), ...leaves.map(l => l.edges), parts.block, parts.blockL].filter(Boolean), false);
   return hits[0] || null;
 }
+function pickProp(cx, cy) {   // the business cards (anything in clickable)
+  ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  return ray.intersectObjects(clickable, false)[0] || null;
+}
+const touchLink = () => document.getElementById('navCta').href;
 function faceAt(hit) {
   const l = hit?.object.userData.leaf; if (!l || hit.object !== l.mesh || !opened || busy) return null;
   const face = hit.face.materialIndex;      // 0 front (right page), 1 back (left page)
@@ -636,8 +782,15 @@ canvas.addEventListener('pointermove', (e) => {
   pointer.x = (e.clientX / innerWidth) * 2 - 1; pointer.y = (e.clientY / innerHeight) * 2 - 1;
   if (e.pointerType !== 'mouse') return;
   const hit = pick(e.clientX, e.clientY);
+  const prop = pickProp(e.clientX, e.clientY);
+  if (prop && (!hit || prop.distance < hit.distance)) {
+    const k = prop.object.userData.prop;
+    stopHover(); canvas.style.cursor = 'pointer'; tip.classList.add('on');
+    tip.textContent = k === 'cards' ? (cardRig?.flipped ? 'Get in touch ↗' : 'Flip the card') : k === 'lamp' ? (lava?.on ? 'Switch off' : 'Switch on') : 'Roll it';
+    tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; return;
+  }
   const f = faceAt(hit);
-  if (!opened) { canvas.style.cursor = hit ? 'pointer' : 'default'; return; }
+  if (!opened) { canvas.style.cursor = hit ? 'pointer' : 'default'; tip.classList.remove('on'); return; }
   if (!(f && playing(f))) { stopHover(); if (f && workOn(f.leaf.i, f.face)) startHover(f); }
   const showTip = f && (workOn(f.leaf.i, f.face) || (f.leaf.i === 0 && f.face === 1));
   canvas.style.cursor = hit ? 'pointer' : 'default';
@@ -654,9 +807,19 @@ canvas.addEventListener('pointerup', (e) => {
   if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { hideHint(); step(dx < 0 ? 1 : -1); return; }   // swipe
   if (Math.hypot(dx, dy) > 10 || !quick) return;
   hideHint();
-  const hit = pick(e.clientX, e.clientY);
+  const hit = pick(e.clientX, e.clientY), prop = pickProp(e.clientX, e.clientY);
+  if (prop && (!hit || prop.distance < hit.distance)) {   // things on the desk
+    const k = prop.object.userData.prop;
+    if (k === 'cards') { if (cardRig?.flipped) openSite(touchLink()); else flipCard(); }
+    else if (k === 'lamp') toggleLamp(); else if (k === 'pencil') rollPencil();
+    tip.classList.remove('on'); return;
+  }
   if (!opened) { if (hit) go(spread === 0 ? 1 : 0); return; }
   const f = faceAt(hit);
+  if (f && f.leaf.i === 0 && f.face === 1) {   // contents: a project row jumps straight to its page (and zooms to it on phones)
+    const n = contentsRow(f);
+    if (n) { const i = n - 1, side = i % 2 ? 'left' : 'right'; go(Math.floor(i / 2) + 1 + (i % 2)); if (phoneMode()) { focus = side; moveCamera(0.9); ui(); } return; }
+  }
   if (phoneMode() && f) {   // phones: first tap zooms to the page, second tap acts on it
     const side = hit.point.x < 0 ? 'left' : 'right';
     if (focus !== side) { setFocus(side); return; }
@@ -664,7 +827,6 @@ canvas.addEventListener('pointerup', (e) => {
   if (f) {
     const w = workOn(f.leaf.i, f.face);
     if (w) { openSite(w.url); return; }
-    if (f.leaf.i === 0 && f.face === 1) { const row = contentsRow(f); if (row) { go(row); return; } }
   }
   // anywhere else: turn toward the side that was clicked
   step(e.clientX < innerWidth / 2 ? -1 : 1);
@@ -676,7 +838,7 @@ function contentsRow(f) {
   const colX = [600, 1070], top = 190, step = 56;
   for (let i = 0; i < WORKS.length; i++) {
     const x = colX[Math.floor(i / 9)], y = top + (i % 9) * step;
-    if (px >= x - 10 && px <= x + 420 && py >= y - 32 && py <= y + 20) return Math.floor(i / 2) + 1 + (i % 2);   // odd projects sit on the next spread's left page
+    if (px >= x - 10 && px <= x + 420 && py >= y - 34 && py <= y + 22) return i + 1;   // the project's number
   }
   return 0;
 }
@@ -707,7 +869,7 @@ let zoomHinted = false;
 function showZoomHint() {   // phones: after the book opens, say how to zoom in
   setTimeout(() => { hint.querySelector('span').textContent = 'Tap a page to zoom in'; hint.classList.add('up'); hint.classList.remove('off'); gsap.to(hint, { opacity: 1, duration: 0.6 }); }, 1200);
 }
-function setLink(el, w) { el.classList.toggle('empty', !w); if (w) { el.href = w.url; el.innerHTML = `<span class="k">${w.n}</span>${w.title}<span class="go">↗</span>`; } }
+function setLink(el, w) { el.classList.toggle('empty', !w); if (w) { el.href = w.url; el.innerHTML = `<span class="k">${w.n}</span><span class="t">${w.title}</span><span class="go">↗</span>`; } }
 let heroShown = true;
 function ui() {
   const open = spread > 0 && spread < SPREADS;
@@ -731,19 +893,20 @@ function intro() {
    ===================================================================== */
 const pageTex = (n) => tex(`img/pages/${n}.webp`);
 async function boot() {
-  const [wood, cover, coverback, contents, end, ...works] = await Promise.all([
+  const [wood, cards, cover, coverback, contents, end, ...works] = await Promise.all([
     Promise.all([tex(small ? 'img/wood/oak-2k.webp' : 'img/wood/oak-3k.webp'), tex('img/wood/oak-normal.webp', { srgb: false })]),
+    Promise.all([pageTex('cardfront'), pageTex('cardback')]),
     pageTex('cover'), pageTex('coverback'), pageTex('contents'), pageTex('end'),
     ...WORKS.map((w, i) => pageTex('work' + String(i + 1).padStart(2, '0'))),
   ]);
-  buildDesk(wood);
+  buildDesk(wood); businessCards(...cards); lavaLamp(); placeLava();
   buildBook({ cover, coverback, contents, end, works });
   fit(); Object.assign(cam, rigNow());
   leaves.forEach(l => l.update()); placeCamera(0.016);
   renderer.compile(scene, camera); composer.render();
   document.getElementById('loader').classList.add('off');
   intro();
-  window.almBook = { go, step, setFocus, get spread() { return spread; }, get focus() { return focus; } };
+  window.almBook = { go, step, setFocus, flipCard, toggleLamp, rollPencil, get spread() { return spread; }, get focus() { return focus; } };
   last = performance.now(); requestAnimationFrame(loop);
 }
 let last = performance.now();
@@ -752,12 +915,13 @@ function loop(now) {
   for (const l of leaves) l.update();
   stacks();
   tickHover();
+  tickLava(dt);
   placeCamera(dt);
   composer.render();
   requestAnimationFrame(loop);
 }
 let lastPortrait = portrait();
-addEventListener('resize', () => { fit(); lastPortrait = portrait(); moveCamera(0.01); });
+addEventListener('resize', () => { fit(); placeLava(); lastPortrait = portrait(); moveCamera(0.01); });
 boot().catch(err => { console.error(err); document.getElementById('loader').innerHTML = `<p style="font:14px Poppins;color:#fff">Could not load the book. ${err?.message ?? ''}</p>`; });
 </script>
 </body>

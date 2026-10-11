@@ -126,11 +126,38 @@ function work(img, key) {
   g.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
   faces[key] = c;
 }
+/* business cards, 85 x 55 mm at about 600 dpi */
+function card(dark) {
+  const c = document.createElement('canvas'); c.width = 2008; c.height = 1300; const g = c.getContext('2d');
+  const CW = c.width, CH = c.height;
+  g.fillStyle = dark ? '#0b0b0c' : '#f4f3ef'; g.fillRect(0, 0, CW, CH);
+  const id = g.getImageData(0, 0, CW, CH), d = id.data;   // fine paper tooth
+  for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - .5) * (dark ? 6 : 8); d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  g.putImageData(id, 0, 0);
+  if (dark) {   // front: the logo in its own colours
+    const h = 230, w = h * logoImg.width / logoImg.height;
+    g.imageSmoothingQuality = 'high'; g.drawImage(logoImg, (CW - w) / 2, CH / 2 - h / 2 - 60, w, h);
+    g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '500 44px "JetBrains Mono", monospace'; g.textAlign = 'center';
+    g.fillText('WEBSITES  ·  ADS  ·  SOCIAL  ·  SEO', CW / 2, CH / 2 + 170);
+  } else {      // back: who and where
+    g.fillStyle = '#3ddc5a'; g.fillRect(150, 150, 120, 12);
+    g.fillStyle = '#0d0d0f'; g.font = '600 120px Poppins, sans-serif'; g.textAlign = 'left';
+    g.fillText('AlmLab', 150, 330);
+    g.fillStyle = 'rgba(13,13,15,.55)'; g.font = '500 54px Poppins, sans-serif';
+    g.fillText('The formula for growth', 150, 420);
+    g.fillStyle = '#0d0d0f'; g.font = '500 64px Poppins, sans-serif';
+    g.fillText('almlabmarketing.com', 150, CH - 200);
+    g.fillStyle = 'rgba(13,13,15,.5)'; g.font = '500 40px "JetBrains Mono", monospace';
+    g.fillText('WEBSITES · ADS · SOCIAL · SEO', 150, CH - 130);
+  }
+  return c;
+}
 async function main() {
-  await Promise.all([document.fonts.load('500 74px Poppins'), document.fonts.load('500 25px Poppins'), document.fonts.load('400 20px "JetBrains Mono"')]).catch(() => {});
+  await Promise.all([document.fonts.load('500 74px Poppins'), document.fonts.load('600 120px Poppins'), document.fonts.load('500 25px Poppins'), document.fonts.load('400 20px "JetBrains Mono"')]).catch(() => {});
   [logoImg, clothImg] = await Promise.all([loadImg('img/logo.png'), loadImg('img/cloth.jpg')]);
   const imgs = await Promise.all(WORKS.map(w => loadImg(w.img)));
   cover(); coverBack(); contents(); end();
+  faces['cardfront'] = card(true); faces['cardback'] = card(false);
   imgs.forEach((img, i) => work(img, `work${String(i + 1).padStart(2, '0')}`));
   const out = document.getElementById('out');
   for (const [k, c] of Object.entries(faces)) { c.title = k; out.appendChild(c); }

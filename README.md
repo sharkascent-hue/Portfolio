@@ -8,9 +8,9 @@ site scroll, click a page to visit it.
 ```
 index.html              the whole page: scene, book, turns, hover, links
 three.module.min.js     three.js r160
-vendor/three-addons/    bloom post-processing from three.js r160
+vendor/three-addons/    bloom post-processing and MarchingCubes (the lava) from three.js r160
 gsap.min.js             GSAP 3.15 for camera moves, turns and the intro
-img/pages/*.webp        every printed page (cover, contents, 18 projects, end)
+img/pages/*.webp        every printed page (cover, contents, 18 projects, end) and the two business cards
 img/*.jpg|png           full-page screenshots that play on hover
 render/                 page-face scripts (and the old Blender desk scripts)
 pages.html              draws the printed pages; render/faces.mjs captures them
@@ -20,7 +20,8 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 
 - **Projects, names, links, hover screenshots**: the `WORKS` list at the top of the script.
 - **Feel**: the `CONFIG` block — turn speed, camera speed, glow, lamp, wood darkness, page brightness, hover scroll speed.
-- **Pencil**: the `PENCIL` line — where it lies and its angle.
+- **Things on the desk**: the `PROPS` block — where the pencil, the business cards and the lava lamp sit,
+  their angle, the lamp's size and how much green light it throws (`glow`). The lamp has its own spot on phones.
 - **Framing**: the `FRAMING` block — where the book sits on screen (centre, width, tilt) closed and open,
   for laptops and phones. The camera works out its own position from these on every screen size.
   `focus` is the zoomed-in single page on phones. `LENS` sets how long the lens is: lower means flatter, less looming.
@@ -28,6 +29,7 @@ pages.html              draws the printed pages; render/faces.mjs captures them
 ## On phones
 
 Tap the book to open it. Both pages of the open spread play their site on their own.
+Tap a project on the Contents page to jump straight to it.
 Tap a page to zoom in on it. Tap it again to visit.
 Swipe or use the arrows to move one page at a time while zoomed in.
 
