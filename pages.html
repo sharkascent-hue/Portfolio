@@ -32,24 +32,24 @@ const WORKS = [
   { n:'17', title:'Floor Trade Ireland',       img:'img/floortrade.jpg' },
   { n:'18', title:'Supreme Landscapes',        img:'img/supreme.jpg' },
 ];
-const W = 1536, H = 864;
+const W = 1536, H = 864, OUT = 2048 / 1536;   // drawn in 1536x864 design units, output at 2048x1152
 const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(src)); i.src = src; });
 let logoImg, clothImg;
-function canvas() { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; }
+function canvas() { const c = document.createElement('canvas'); c.width = W * OUT; c.height = H * OUT; c.getContext('2d').scale(OUT, OUT); return c; }
 function grain(g, alpha) {
-  const id = g.getImageData(0, 0, W, H), d = id.data, k = alpha * 255;
+  const cw = g.canvas.width, ch = g.canvas.height, id = g.getImageData(0, 0, cw, ch), d = id.data, k = alpha * 255;
   for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - .5) * k; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
   g.putImageData(id, 0, 0);
 }
 function drawLogo(g, x, y, h, color) {
   const w = h * logoImg.width / logoImg.height;
-  const o = document.createElement('canvas'); o.width = Math.ceil(w); o.height = Math.ceil(h);
-  const og = o.getContext('2d'); og.drawImage(logoImg, 0, 0, w, h);
+  const o = document.createElement('canvas'); o.width = Math.ceil(w * OUT); o.height = Math.ceil(h * OUT);
+  const og = o.getContext('2d'); og.drawImage(logoImg, 0, 0, o.width, o.height);
   const id = og.getImageData(0, 0, o.width, o.height), d = id.data;   // drop the logo file's soft glow so it prints crisp
   for (let i = 3; i < d.length; i += 4) d[i] = Math.max(0, Math.min(255, (d[i] - 110) * 2.6));
   og.putImageData(id, 0, 0);
-  og.globalCompositeOperation = 'source-in'; og.fillStyle = color; og.fillRect(0, 0, w, h);
-  g.drawImage(o, x, y); return w;
+  og.globalCompositeOperation = 'source-in'; og.fillStyle = color; og.fillRect(0, 0, o.width, o.height);
+  g.drawImage(o, x, y, w, h); return w;
 }
 function clothFill(g) {
   const p = g.createPattern(clothImg, 'repeat');

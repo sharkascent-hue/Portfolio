@@ -139,6 +139,7 @@ const CONFIG = {
   cameraSeconds: 1.7,      // the dolly in when the book opens
   bloom: { strength: 0.22, radius: 0.45, threshold: 0.98 },
   pageBrightness: 0.93,    // how bright the printed sites are (1 = exactly the site's colours)
+  pageGloss: 0.45,         // how glossy the paper is (0 matte … 1 very shiny)
   lamp: 9,                 // the desk lamp: lights the wood, the book and casts the shadows
   desk: 0.1,               // brightness of the wood (the texture is darkened by this)
   parallax: 0.018,         // how much the camera follows the mouse
@@ -150,8 +151,12 @@ const CONFIG = {
    ===================================================================== */
 const PAGE_W = 0.30, PAGE_D = 0.16875;     // 16:9 leaf; spine at x=0, fore edge at +x, depth along z
 const LEAF_T = 0.0013, BOARD_T = 0.0025, OVER = 0.004;
-const SEGS = 40;
-const N_LEAVES = 11;                        // cover + 9 work leaves + back cover
+const SEGS = 64;
+const N_LEAVES = 11;
+/* an open book's pages dip into the spine and rise to a flat plateau */
+const REST = { tilt: 0.3, reach: 0.17 };   // tilt: angle at the spine (radians); reach: how far from the spine the curve runs (fraction of the page)
+const restCurve = (s) => s < REST.reach ? Math.pow(1 - s / REST.reach, 2) : 0;
+const DROP = (() => { const d = new Array(SEGS + 1).fill(0), ds = PAGE_W / SEGS; for (let c = SEGS - 1; c >= 0; c--) d[c] = d[c + 1] + ds * Math.sin(REST.tilt * restCurve((c + 1) / SEGS)); return d; })();                        // cover + 9 work leaves + back cover
 
 /* FRAMING — where the book sits on screen. The camera solves for these on every screen shape.
    cx, cy: centre of the book as a fraction of the screen; w: its width as a fraction of the screen
@@ -178,13 +183,13 @@ renderer.setPixelRatio(DPR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.VSMShadowMap;   // soft, blurred shadows like a real lamp
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(30, 1, 0.02, 20);
 
-const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: DPR >= 2.5 ? 2 : 4 });
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
 const composer = new EffectComposer(renderer, rt);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), small ? CONFIG.bloom.strength * 0.6 : CONFIG.bloom.strength, CONFIG.bloom.radius, small ? 0.92 : CONFIG.bloom.threshold);
@@ -198,8 +203,8 @@ const lamp = new THREE.SpotLight(0xeef4ff, CONFIG.lamp, 4, 0.36, 1, 2);
 lamp.position.set(0.06, 1.75, 0.04);   // almost straight overhead: a page standing up during a turn casts a short shadow, not a long black one
 lamp.target.position.set(0.04, 0, 0.0);
 lamp.castShadow = true;
-lamp.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
-lamp.shadow.bias = -0.00012; lamp.shadow.normalBias = 0.0015; lamp.shadow.radius = 5;
+lamp.shadow.mapSize.set(2048, 2048);
+lamp.shadow.bias = -0.0002; lamp.shadow.normalBias = 0.001; lamp.shadow.radius = 10; lamp.shadow.blurSamples = 20;
 lamp.shadow.camera.near = 0.8; lamp.shadow.camera.far = 2.4;
 scene.add(lamp, lamp.target);
 scene.add(new THREE.HemisphereLight(0x9aa6c0, 0x050505, 0.06));
@@ -209,7 +214,11 @@ function studio() {
   const room = new THREE.Scene();
   room.add(new THREE.Mesh(new THREE.BoxGeometry(6, 4, 6), new THREE.MeshBasicMaterial({ color: 0x050506, side: THREE.BackSide })));
   const panel = (w, h, c, x, y, z, rx) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c), side: THREE.DoubleSide })); m.position.set(x, y, z); m.rotation.x = rx; room.add(m); };
-  panel(1.4, 1.0, 0xf0f4ff, 0.15, 1.8, -0.3, Math.PI / 2);
+  // a soft ceiling light beyond the book: glossy pages pick it up as a gentle sheen that slides as they turn
+  panel(2.6, 0.35, 0x8a8f9a, 0.05, 1.95, -0.95, Math.PI / 2);
+  panel(2.6, 0.35, 0xc9ced8, 0.05, 1.95, -1.25, Math.PI / 2);
+  panel(2.6, 0.35, 0x8a8f9a, 0.05, 1.95, -1.55, Math.PI / 2);
+  panel(0.5, 0.5, 0xffffff, 0.06, 1.98, 0.04, Math.PI / 2);   // the lamp head itself, small
   panel(0.6, 2.0, 0x1a2030, -2.8, 1.0, 0.5, 0);
   const pm = new THREE.PMREMGenerator(renderer);
   const env = pm.fromScene(room, 0.03).texture; pm.dispose(); return env;
@@ -308,13 +317,23 @@ const pageShade = (sh) => {
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
     float facing = clamp(dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)), 0.0, 1.0);
     float gutter = mix(0.5, 1.0, smoothstep(0.0, 0.13, vGut)) * mix(1.0, 0.88, smoothstep(0.93, 1.0, vGut));   // paper dips into the spine
-    totalEmissiveRadiance *= (0.42 + 0.58 * facing * facing) * gutter;`);
+    totalEmissiveRadiance *= (0.42 + 0.58 * facing * facing) * gutter;`)
+    .replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
+    #if defined( USE_SHADOWMAP ) && NUM_SPOT_LIGHT_SHADOWS > 0
+      // a page lifting over this one shades it (the print glows, so the lamp's shadow alone would not show)
+      float pageShadow = getShadow( spotShadowMap[ 0 ], spotLightShadows[ 0 ].shadowMapSize, spotLightShadows[ 0 ].shadowBias, spotLightShadows[ 0 ].shadowRadius, vSpotLightCoord[ 0 ] );
+      totalEmissiveRadiance *= mix(0.5, 1.0, pageShadow);
+    #endif`);
 };
 const screenMat = (map) => {
-  const m = new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(CONFIG.pageBrightness, CONFIG.pageBrightness, CONFIG.pageBrightness), color: new THREE.Color(0.1, 0.1, 0.1), roughness: 1, metalness: 0, envMapIntensity: 0 });
+  const b = CONFIG.pageBrightness;
+  const m = new THREE.MeshPhysicalMaterial({
+    map, emissiveMap: map, emissive: new THREE.Color(b, b, b), color: new THREE.Color(0.1, 0.1, 0.1), roughness: 1, metalness: 0,
+    clearcoat: CONFIG.pageGloss, clearcoatRoughness: 0.2, envMapIntensity: 1,   // printed on lightly glossy stock
+  });
   m.onBeforeCompile = pageShade; return m;
 };
-const coverMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.8, 0.8, 0.8), roughness: 0.8, metalness: 0, envMapIntensity: 0.08, color: new THREE.Color(0.06, 0.06, 0.06) });   // black cloth, the printed logo reads white
+const coverMat = (map) => new THREE.MeshPhysicalMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.8, 0.8, 0.8), roughness: 0.75, metalness: 0, envMapIntensity: 0.6, color: new THREE.Color(0.06, 0.06, 0.06), clearcoat: 0.18, clearcoatRoughness: 0.45 });   // soft-touch black board with a faint sheen   // black cloth, the printed logo reads white
 
 const ease3 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 class Leaf {
@@ -352,13 +371,14 @@ class Leaf {
     const lift = Math.cos((hinge + fore) / 2);   // bow away from whichever stack the page is over
     this.turn = this.from + (this.to - this.from) * ease3((p - lag) / (1 - lag));
     const pos = this.geo.attributes.position.array, cols = SEGS + 1, per = cols * 2, ds = this.w / SEGS;
-    let x = 0, y = this.base(THREE.MathUtils.clamp(this.turn, 0, 1)) + 0.0003, a = hinge;
+    const rest = this.flex === 1 ? Math.cos(this.turn * Math.PI) * (1 - Math.sin(Math.PI * p)) : 0;   // + lying right, - lying left, 0 in the air
+    let x = 0, y = this.base(THREE.MathUtils.clamp(this.turn, 0, 1)) + 0.0003 - DROP[0] * Math.abs(rest), a = hinge;
     const out = this.board === null ? 0 : (this.board === 0 ? 1 : -1) * BOARD_T;   // outside face offset along the normal
     const ep = this.edges ? this.edgeGeo.attributes.position.array : null, hd = this.d / 2;
     for (let c = 0; c <= SEGS; c++) {
       if (c > 0) {
         const s = c / SEGS;
-        a = hinge + (fore - hinge) * Math.pow(s, 1.6) + bulge * lift * (s - s * s);   // lifted paper bows upward
+        a = hinge + (fore - hinge) * Math.pow(s, 1.6) + bulge * lift * (s - s * s) + REST.tilt * restCurve(s) * rest;   // lifted paper bows upward; resting paper rises out of the gutter
         x += ds * Math.cos(a); y += ds * Math.sin(a);
       }
       const yy = Math.max(y, 0.0004), ox = x - Math.sin(a) * out, oy = Math.max(yy + Math.cos(a) * out, 0.0002);
@@ -381,7 +401,20 @@ const leaves = [];
 let spread = 0, opened = false, busy = 0, focus = null;   // focus: 'left' | 'right' page zoomed on phones
 const parts = {};
 
-const boardEdgeMat = new THREE.MeshStandardMaterial({ color: 0x121214, roughness: 0.7, envMapIntensity: 0.4, side: THREE.DoubleSide });
+const boardEdgeMat = new THREE.MeshPhysicalMaterial({ color: 0x121214, roughness: 0.7, envMapIntensity: 0.6, clearcoat: 0.18, clearcoatRoughness: 0.45, side: THREE.DoubleSide });
+/* the page block under the top page: its top follows the same dip into the gutter as the pages */
+function blockGeometry(h, dir) {
+  const shape = new THREE.Shape(), w = PAGE_W - 0.002, d = PAGE_D - 0.002;
+  shape.moveTo(0, 0); shape.lineTo(w, 0);
+  for (let c = SEGS; c >= 0; c--) shape.lineTo((c / SEGS) * w, Math.max(0.00005, h - DROP[c]));
+  shape.closePath();
+  const g = new THREE.ExtrudeGeometry(shape, { depth: d, bevelEnabled: false, curveSegments: 1 });
+  g.translate(0, 0, -d / 2); if (dir < 0) g.scale(-1, 1, 1);   // mirrored for the left side (its material is double-sided)
+  const pos = g.attributes.position, uv = new Float32Array(pos.count * 2);   // paper lines: one per sheet, whichever face you look at
+  for (let i = 0; i < pos.count; i++) { uv[i * 2] = pos.getX(i) + pos.getZ(i); uv[i * 2 + 1] = pos.getY(i) / (64 * LEAF_T); }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.computeVertexNormals();
+  return g;
+}
 function edgeTexture() {
   const c = document.createElement('canvas'); c.width = 8; c.height = 128; const g = c.getContext('2d');
   g.fillStyle = '#d9d5cc'; g.fillRect(0, 0, 8, 128);
@@ -397,12 +430,13 @@ function buildBook(T) {
   leaves.forEach(l => { book.add(l.mesh); if (l.edges) book.add(l.edges); });
 
   const cloth = new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.6, envMapIntensity: 0.5 });
-  const edgeMap = edgeTexture(); const edge = new THREE.MeshStandardMaterial({ map: edgeMap, emissiveMap: edgeMap, emissive: new THREE.Color(0.32, 0.32, 0.32), roughness: 0.9 });   // paper edges read light, like a real page block
+  const edgeMap = edgeTexture(); const edge = new THREE.MeshStandardMaterial({ map: edgeMap, emissiveMap: edgeMap, emissive: new THREE.Color(0.32, 0.32, 0.32), roughness: 0.9, side: THREE.DoubleSide });   // paper edges read light, like a real page block
   const full = N_LEAVES * LEAF_T + BOARD_T * 2;
   const mk = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; book.add(m); return m; };
   parts.spine = mk(new THREE.BoxGeometry(BOARD_T * 1.6, full, bd), cloth); parts.spine.position.set(-BOARD_T * 0.6, full / 2, 0);
-  parts.block = mk(new THREE.BoxGeometry(PAGE_W - 0.002, 1, PAGE_D - 0.002), edge);
-  parts.blockL = mk(new THREE.BoxGeometry(PAGE_W - 0.002, 1, PAGE_D - 0.002), edge);
+  parts.block = mk(new THREE.BufferGeometry(), edge); parts.block.userData.h = -1;
+  parts.blockL = mk(new THREE.BufferGeometry(), edge); parts.blockL.userData.h = -1;
+  parts.spineFull = full;
   parts.shR = softShadow(bw + 0.09, bd + 0.08, bw / 2, 0.75);
   parts.shL = softShadow(bw + 0.09, bd + 0.08, -bw / 2, 0.75);
   stacks();
@@ -412,8 +446,14 @@ function stacks() {
   // only leaves lying still count; a leaf in the air must not be covered by the stack it left
   let right = 0, left = 0;
   for (const l of leaves) { const still = l.p >= 1; if (still && l.turn < 0.5) right++; else if (still) left++; }
-  const place = (m, n, x) => { const h = Math.max(0, n - 1) * LEAF_T; m.visible = h > 0.0002; m.scale.y = Math.max(h - 0.0002, 0.0001); m.position.set(x, BOARD_T + m.scale.y / 2, 0); };
-  place(parts.block, right, PAGE_W / 2); place(parts.blockL, left, -PAGE_W / 2);
+  const place = (m, n, dir) => {
+    const h = Math.max(0, n - 1) * LEAF_T - 0.0002; m.visible = h > 0.0001;
+    if (!m.visible || Math.abs(m.userData.h - h) < 1e-6) return;
+    m.userData.h = h; m.geometry.dispose(); m.geometry = blockGeometry(h, dir); m.position.set(0, BOARD_T, 0);
+  };
+  place(parts.block, right, 1); place(parts.blockL, left, -1);
+  const closed = right === N_LEAVES || left === N_LEAVES;
+  parts.spine.scale.y = closed ? 1 : BOARD_T * 1.5 / parts.spineFull; parts.spine.position.y = parts.spine.scale.y * parts.spineFull / 2;
   let anyRight = 0, anyLeft = 0; for (const l of leaves) (l.turn < 0.5 ? anyRight++ : anyLeft++);
   parts.shR.material.opacity = anyRight > 0 ? 0.75 : 0; parts.shL.material.opacity = anyLeft > 0 ? 0.75 : 0;
 }

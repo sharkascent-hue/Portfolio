@@ -51,4 +51,6 @@ To try another wood, download its Diffuse and Normal (GL) maps from polyhaven.co
 ## Colours of the pages
 
 `CONFIG.pageBrightness` sets how bright the printed sites are; 1 shows exactly the site's colours.
-Pages darken slightly as they lift during a turn, like real paper leaving the lamp light.
+`CONFIG.pageGloss` sets how glossy the paper is (0 matte, 1 very shiny).
+`REST` sets how much open pages curve up out of the spine.
+Pages darken slightly as they lift during a turn, and a turning page shades the one beneath it.
