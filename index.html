@@ -117,7 +117,7 @@ const WORKS = [
   { n:'02', title:'All Leaders Follow',        url:'https://allleadersfollow.vercel.app/index.html', img:'img/allleaders.jpg', intro:'img/video/allleaders-intro.mp4', hero:'img/video/allleaders.mp4' },
   { n:'03', title:'Pentium Logistics',         url:'https://www.pentiumenvironmentallogistics.ie/', img:'img/pentium.jpg' },
   { n:'04', title:'Mejia Landscaping',         url:'https://mejia-psi.vercel.app/', img:'img/mejia.jpg', hero:'img/video/mejia.mp4' },
-  { n:'05', title:'Big Bear Planetariums',     url:'https://www.bigbearplanetariums.ie/', img:'img/bigbear.jpg', intro:'img/video/bigbear-intro.mp4', hero:'img/video/bigbear.mp4' },
+  { n:'05', title:'Big Bear Planetariums',     url:'https://www.bigbearplanetariums.ie/', img:'img/bigbear.jpg', hero:'img/video/bigbear.mp4' },
   { n:'06', title:'Five Star Home Improvement',url:'https://www.5starhomeimprovements.ie/', img:'img/fivestar.jpg', intro:'img/video/fivestar-intro.mp4', hero:'img/video/fivestar.mp4' },
   { n:'07', title:'Evolve Gym Equipment',      url:'https://www.evolvege.ie/', img:'img/evolve.jpg', intro:'img/video/evolve-intro.mp4' },
   { n:'08', title:'Attics R Us',               url:'https://www.atticsrus.ie/', img:'img/attics.jpg', hero:'img/video/attics.mp4' },
@@ -737,17 +737,36 @@ function faceAt(hit) {
    then its moving hero (`hero`, looping) or its still top, then it scrolls down the site and back up.
    Dragging (phones) or the mouse wheel (laptops) over a page scrolls it by hand. */
 const clips = new Map();   // video src -> { v, t, ready, want }
+const videoBox = Object.assign(document.createElement('div'), { ariaHidden: 'true' });
+videoBox.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0.01;pointer-events:none;z-index:-1';
+document.body.appendChild(videoBox);
+/* a playing clip that stops advancing gets a nudge; returns true while it's stuck */
+function stalled(c, now) {
+  if (!c || c.v.paused) { if (c) c.still = 0; return false; }
+  if (c.v.currentTime !== c.lastT) { c.lastT = c.v.currentTime; c.still = now; return false; }
+  if (!c.still) c.still = now;
+  if (now - c.still > 900) { c.v.play().catch(() => {}); }   // nudge it
+  return now - c.still > 1600;
+}
 function clip(src, loop) {
   if (!src) return null;
   let c = clips.get(src);
+  if (c) { clips.delete(src); clips.set(src, c); }   // most recently used last
   if (!c) {
+    for (const [k, old] of clips) {   // keep at most 8 videos alive: release the oldest one nobody is using
+      if (clips.size < 8) break;
+      if (old.want || plays.some(pl => pl.intro === old || pl.hero === old)) continue;
+      old.v.pause(); old.v.removeAttribute('src'); old.v.load(); old.v.remove(); old.t.dispose(); clips.delete(k);
+    }
     const v = document.createElement('video');
     Object.assign(v, { src, muted: true, loop, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' });
     v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
     const t = new THREE.VideoTexture(v); t.colorSpace = THREE.SRGBColorSpace;
-    c = { v, t, ready: false, want: false };
+    c = { v, t, ready: false, want: false, lastT: -1, still: 0 };
     const mark = () => { c.ready = true; }; v.addEventListener('loadeddata', mark); v.addEventListener('playing', mark);
-    v.play().then(() => { if (!c.want) { v.pause(); v.currentTime = 0; } }).catch(() => {});   // phones only buffer a video once it has played
+    if (loop) v.addEventListener('ended', () => { v.currentTime = 0; v.play().catch(() => {}); });   // belt and braces for phones that stall at the loop point
+    videoBox.appendChild(v);   // Safari keeps decoding reliably only for videos that are in the page (this box is invisible)
+    v.load();
     clips.set(src, c);
   }
   return c;
@@ -811,9 +830,13 @@ function tickPlays() {
       if (I && I.ready && !I.v.paused && I.v.currentTime > 0) pl.phase = 'intro';
       else if (!I || now - pl.t0 > 6000) { pl.phase = 'top'; pl.top0 = now; if (I) { I.want = false; I.v.pause(); } }
     }
-    if (pl.phase === 'intro' && (I.v.ended || (I.v.duration && I.v.currentTime >= I.v.duration - 0.06))) { pl.phase = 'top'; pl.top0 = now; I.want = false; }
+    if (pl.phase === 'intro' && (I.v.ended || (I.v.duration && I.v.currentTime >= I.v.duration - 0.06) || stalled(I, now))) { pl.why = [I.v.ended, I.v.currentTime.toFixed(2), I.v.duration, !!I.still].join(','); pl.phase = 'top'; pl.top0 = now; I.want = false; I.v.pause(); }
     // 2. the moving hero loops while the page rests at the top
-    if (pl.phase === 'top' && H && !H.want) { H.want = true; H.v.play().catch(() => {}); }
+    if (pl.phase === 'top' && H) {
+      const nearTop = !pl.tex || pl.win >= 0.98 || pl.tex.offset.y > (1 - pl.win) * 0.9;
+      if (nearTop && (!H.want || H.v.paused)) { H.want = true; H.v.play().catch(() => {}); }
+      else if (!nearTop && H.want) { H.want = false; H.v.pause(); }
+    }
     // 3. rest at the top, scroll down the site, rest, glide back up (or follow the finger / wheel)
     const t = pl.tex;
     if (t && pl.win < 0.98 && pl.phase === 'top') {
@@ -829,7 +852,7 @@ function tickPlays() {
     const atTop = !t || pl.win >= 0.98 || t.offset.y > (1 - pl.win) * 0.997;
     const show = pl.phase === 'intro' ? I.t
       : pl.phase === 'wait' ? pl.base
-      : atTop ? (H?.ready ? H.t : t || pl.base)
+      : atTop ? (H?.ready && !stalled(H, now) ? H.t : t || pl.base)
       : t;
     setFaceMap(pl.leaf, pl.face, show);
     if (pl.phase !== ph0) (pl.log ??= []).push(pl.phase + '@' + ((now - pl.t0) / 1000).toFixed(1));
@@ -988,7 +1011,7 @@ async function boot() {
   renderer.compile(scene, camera); composer.render();
   document.getElementById('loader').classList.add('off');
   intro();
-  window.almBook = { go, step, setFocus, flipCard, toggleLogo, rollPencil, get plays() { return plays.map(p => ({ w: p.work.n, tex: !!p.tex, win: p.win, manual: p.manual, phase: p.phase, log: p.log })); }, playAt: (x, y) => !!playAt(x, y), get spread() { return spread; }, get focus() { return focus; } };
+  window.almBook = { go, step, setFocus, flipCard, toggleLogo, rollPencil, get plays() { return plays.map(p => ({ w: p.work.n, tex: !!p.tex, win: p.win, manual: p.manual, phase: p.phase, log: p.log, why: p.why })); }, playAt: (x, y) => !!playAt(x, y), get spread() { return spread; }, get focus() { return focus; } };
   last = performance.now(); requestAnimationFrame(loop);
 }
 let last = performance.now();
