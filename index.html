@@ -183,7 +183,7 @@ renderer.setPixelRatio(DPR);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.VSMShadowMap;   // soft, blurred shadows like a real lamp
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // (VSM soft shadows streaked on phone GPUs, so not that)
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -204,7 +204,7 @@ lamp.position.set(0.06, 1.75, 0.04);   // almost straight overhead: a page stand
 lamp.target.position.set(0.04, 0, 0.0);
 lamp.castShadow = true;
 lamp.shadow.mapSize.set(2048, 2048);
-lamp.shadow.bias = -0.0002; lamp.shadow.normalBias = 0.001; lamp.shadow.radius = 10; lamp.shadow.blurSamples = 20;
+lamp.shadow.bias = -0.0004; lamp.shadow.normalBias = 0.002;   // generous bias: no shadow streaks on phone GPUs
 lamp.shadow.camera.near = 0.8; lamp.shadow.camera.far = 2.4;
 scene.add(lamp, lamp.target);
 scene.add(new THREE.HemisphereLight(0x9aa6c0, 0x050505, 0.06));
@@ -322,7 +322,7 @@ const pageShade = (sh) => {
     #if defined( USE_SHADOWMAP ) && NUM_SPOT_LIGHT_SHADOWS > 0
       // a page lifting over this one shades it (the print glows, so the lamp's shadow alone would not show)
       float pageShadow = getShadow( spotShadowMap[ 0 ], spotLightShadows[ 0 ].shadowMapSize, spotLightShadows[ 0 ].shadowBias, spotLightShadows[ 0 ].shadowRadius, vSpotLightCoord[ 0 ] );
-      totalEmissiveRadiance *= mix(0.5, 1.0, pageShadow);
+      totalEmissiveRadiance *= mix(0.68, 1.0, pageShadow);
     #endif`);
 };
 const screenMat = (map) => {
