@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AlmLab | Interactive Portfolio — a book you can explore</title>
-<meta name="description" content="AlmLab's portfolio as a real book on a desk. Open it, flip through the pages, visit the work.">
+<meta name="description" content="AlmLab's portfolio as a real book on a desk. Open it, turn the pages, hover a page to see the site in motion, click to visit.">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="favicon.ico">
@@ -22,51 +22,41 @@
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{background:var(--bg);scroll-behavior:auto}
-body{margin:0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
-/* the film: a fixed canvas, the page scrolls a tall spacer to scrub it */
-.stage{position:fixed;inset:0;overflow:hidden;background:#000;perspective:1400px}
-.film{position:absolute;inset:0;will-change:transform;transform-style:preserve-3d}
-#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
-.spacer{position:relative;width:100%;pointer-events:none}
-/* cinematic finish */
-.grade{position:fixed;inset:0;pointer-events:none;z-index:2}
-.grade::before{content:"";position:absolute;inset:0;background:radial-gradient(110% 85% at 50% 48%,transparent 30%,rgba(0,0,0,.45) 70%,rgba(0,0,0,.85) 100%)}
-.grade::after{content:"";position:absolute;inset:0;opacity:.035;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-/* nav */
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.grade{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(120% 95% at 50% 55%,transparent 45%,rgba(0,0,0,.55) 85%,rgba(0,0,0,.85) 100%)}
 .nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:26px 36px;pointer-events:none}
 .nav>*{pointer-events:auto}
 .logo{display:block;height:22px;opacity:0}
 .logo img{height:100%;width:auto;display:block}
-.cta{font:500 13px/1 var(--sans);color:#111;background:#fff;border-radius:7px;padding:11px 15px;text-decoration:none;letter-spacing:.01em;box-shadow:0 0 0 1px rgba(255,255,255,.4) inset,0 8px 30px rgba(0,0,0,.6);transition:transform .25s ease,background .25s ease;opacity:0}
+.cta{font:500 13px/1 var(--sans);color:#111;background:#fff;border-radius:7px;padding:11px 15px;text-decoration:none;letter-spacing:.01em;box-shadow:0 8px 30px rgba(0,0,0,.6);transition:transform .25s ease,background .25s ease;opacity:0}
 .cta:hover{transform:translateY(-1px);background:#f3f3f3}
-/* headline */
 .hero{position:fixed;left:36px;top:clamp(76px,14vh,132px);z-index:9;max-width:620px;pointer-events:none}
-.hero h1{margin:0;font:600 clamp(24px,min(3.6vw,5.6vh),46px)/1.06 var(--sans);letter-spacing:-.03em;text-wrap:balance}
+.hero h1{margin:0;font:600 clamp(24px,min(3.6vw,5.6vh),46px)/1.06 var(--sans);letter-spacing:-.03em}
 .hero h1 span{display:block;opacity:0;transform:translateY(22px)}
-.hero p{margin:14px 0 0;font:400 13px/1.5 var(--sans);color:var(--muted);letter-spacing:-.005em;opacity:0}
-/* spread bar */
+.hero p{margin:14px 0 0;font:400 13px/1.5 var(--sans);color:var(--muted);opacity:0}
 .bar{position:fixed;left:50%;bottom:28px;z-index:10;transform:translate(-50%,24px);opacity:0;pointer-events:none;display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;background:rgba(14,14,16,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 0 0 1px rgba(255,255,255,.08) inset,0 20px 60px rgba(0,0,0,.6);transition:opacity .5s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
 .bar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .bar button,.bar a{appearance:none;border:0;background:transparent;color:#fff;font:500 12px/1 var(--sans);height:36px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background .2s ease}
 .bar button{width:36px;padding:0;justify-content:center;font-size:16px}
 .bar a:hover,.bar button:hover{background:rgba(255,255,255,.09)}
+.bar button:focus-visible,.bar a:focus-visible,.cta:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .bar a .k{font:500 10px/1 var(--mono);color:var(--muted)}
 .bar a .go{opacity:.6;font-size:13px}
 .bar .sep{width:1px;height:18px;background:rgba(255,255,255,.12)}
 .bar a.empty{display:none}
-/* hint */
 .hint{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:9;font:400 12px/1 var(--sans);color:var(--muted);letter-spacing:.02em;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;gap:10px;opacity:0;white-space:nowrap}
 .hint i{display:block;width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
 .hint.off{opacity:0!important}
-/* loader */
+.tip{position:fixed;z-index:11;pointer-events:none;font:500 12px/1 var(--sans);color:#111;background:#fff;border-radius:999px;padding:8px 12px;transform:translate(14px,14px);opacity:0;transition:opacity .2s ease;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.tip.on{opacity:1}
 .loader{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#000;transition:opacity .9s ease}
 .loader.off{opacity:0;pointer-events:none}
 .loader div{width:120px;height:2px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}
 .loader b{display:block;height:100%;width:0;background:#fff;transition:width .3s ease}
 @media (max-width:720px){
-  .nav{padding:18px 18px}.logo{height:18px}.cta{padding:10px 12px;font-size:12px}
+  .nav{padding:18px}.logo{height:18px}.cta{padding:10px 12px;font-size:12px}
   .hero{left:18px;right:18px;top:84px}.hero p{font-size:12px}
   .bar{bottom:18px;max-width:calc(100% - 24px);overflow:auto;scrollbar-width:none}.bar::-webkit-scrollbar{display:none}.bar a{padding:0 10px}
   .hint{bottom:22px}
@@ -76,9 +66,8 @@ body{margin:0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:an
 </head>
 <body>
 
-<div class="stage" aria-hidden="true"><div class="film" id="film"><canvas id="gl"></canvas></div></div>
-<div class="spacer" id="spacer"></div>
-<div class="grade"></div>
+<canvas id="gl" aria-label="A portfolio book on a desk. Click the book to open it, scroll to turn the pages, click a page to visit the site."></canvas>
+<div class="grade" aria-hidden="true"></div>
 
 <header class="nav">
   <a class="logo" id="navLogo" href="https://almlabmarketing.com/" aria-label="AlmLab home"><img src="img/logo.png" alt="AlmLab"></a>
@@ -87,10 +76,11 @@ body{margin:0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:an
 
 <section class="hero" id="hero">
   <h1><span>Interactive Portfolio</span><span>that you can explore</span></h1>
-  <p id="heroSub">Click on pages to view works, scroll to flip through the book</p>
+  <p id="heroSub">Click on pages to view works, hover to see how they act in motion</p>
 </section>
 
 <div class="hint" id="hint"><i></i> <span>Click the book to open it</span></div>
+<div class="tip" id="tip">View site ↗</div>
 
 <nav class="bar" id="bar" aria-label="Current spread">
   <button id="prev" aria-label="Previous page">‹</button>
@@ -103,228 +93,469 @@ body{margin:0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:an
 <div class="loader" id="loader"><div><b id="loadbar"></b></div></div>
 
 <script src="gsap.min.js"></script>
-<script>
+<script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+gsap.ticker.lagSmoothing(0);   // slow frames skip ahead instead of playing in slow motion
+import { EffectComposer } from './vendor/three-addons/postprocessing/EffectComposer.js';
+import { RenderPass } from './vendor/three-addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from './vendor/three-addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from './vendor/three-addons/postprocessing/OutputPass.js';
+
 /* =====================================================================
-   The book is a film rendered offline. Scrolling scrubs it, clicking a
-   page plays to the next rest point, the mouse tilts the frame a few degrees.
+   THE WORK — order is the order in the book. `img` is the full-page
+   screenshot that plays on hover; img/pages/workNN.webp is the printed page.
    ===================================================================== */
 const WORKS = [
-  { n:'01', title:'AlmLab Instant Lead Reply', url:'https://almlabmarketing.com/reply/' },
-  { n:'02', title:'All Leaders Follow',        url:'https://allleadersfollow.vercel.app/index.html' },
-  { n:'03', title:'Pentium Logistics',         url:'https://www.pentiumenvironmentallogistics.ie/' },
-  { n:'04', title:'Mejia Landscaping',         url:'https://mejia-psi.vercel.app/' },
-  { n:'05', title:'Big Bear Planetariums',     url:'http://www.bigbearplanetariums.ie/' },
-  { n:'06', title:'Five Star Home Improvement',url:'https://www.5starhomeimprovements.ie/' },
-  { n:'07', title:'Evolve Gym Equipment',      url:'https://www.evolvege.ie/' },
-  { n:'08', title:'Attics R Us',               url:'https://www.atticsrus.ie/' },
-  { n:'09', title:'Quality Fencing',           url:'https://www.qualityfencing.ie/' },
-  { n:'10', title:'Diamond Flooring',          url:'https://www.diamondflooringdublin.ie/' },
-  { n:'11', title:'AL Fitness & Coaching',     url:'https://www.alfitnessandcoaching.com/' },
-  { n:'12', title:'15-50 Cabins',              url:'https://www.1550.ie/' },
-  { n:'13', title:'Manchester Paving & Patios',url:'https://www.manchesterpavingandpatios.co.uk/' },
-  { n:'14', title:'SH Interior',               url:'https://www.irsh.ie/' },
-  { n:'15', title:'Omni Renovations',          url:'https://www.omnirenovations.ie/' },
-  { n:'16', title:'Seattle Core Masonry',      url:'https://www.chimneyrepairsseattle.com/' },
-  { n:'17', title:'Floor Trade Ireland',       url:'https://www.floortradeireland.ie/' },
-  { n:'18', title:'Supreme Landscapes',        url:'https://www.supremelandscapesdublin.ie/' },
+  { n:'01', title:'AlmLab Instant Lead Reply', url:'https://almlabmarketing.com/reply/', img:'img/reply.jpg' },
+  { n:'02', title:'All Leaders Follow',        url:'https://allleadersfollow.vercel.app/index.html', img:'img/allleaders.jpg' },
+  { n:'03', title:'Pentium Logistics',         url:'https://www.pentiumenvironmentallogistics.ie/', img:'img/pentium.jpg' },
+  { n:'04', title:'Mejia Landscaping',         url:'https://mejia-psi.vercel.app/', img:'img/mejia.jpg' },
+  { n:'05', title:'Big Bear Planetariums',     url:'http://www.bigbearplanetariums.ie/', img:'img/bigbear.png' },
+  { n:'06', title:'Five Star Home Improvement',url:'https://www.5starhomeimprovements.ie/', img:'img/fivestar.jpg' },
+  { n:'07', title:'Evolve Gym Equipment',      url:'https://www.evolvege.ie/', img:'img/evolve.jpg' },
+  { n:'08', title:'Attics R Us',               url:'https://www.atticsrus.ie/', img:'img/attics.jpg' },
+  { n:'09', title:'Quality Fencing',           url:'https://www.qualityfencing.ie/', img:'img/qualityfencing.jpg' },
+  { n:'10', title:'Diamond Flooring',          url:'https://www.diamondflooringdublin.ie/', img:'img/diamond.jpg' },
+  { n:'11', title:'AL Fitness & Coaching',     url:'https://www.alfitnessandcoaching.com/', img:'img/alfitness.jpg' },
+  { n:'12', title:'15-50 Cabins',              url:'https://www.1550.ie/', img:'img/cabins.jpg' },
+  { n:'13', title:'Manchester Paving & Patios',url:'https://www.manchesterpavingandpatios.co.uk/', img:'img/manchester.jpg' },
+  { n:'14', title:'SH Interior',               url:'https://www.irsh.ie/', img:'img/shinterior.jpg' },
+  { n:'15', title:'Omni Renovations',          url:'https://www.omnirenovations.ie/', img:'img/omni.jpg' },
+  { n:'16', title:'Seattle Core Masonry',      url:'https://www.chimneyrepairsseattle.com/', img:'img/seattle.jpg' },
+  { n:'17', title:'Floor Trade Ireland',       url:'https://www.floortradeireland.ie/', img:'img/floortrade.jpg' },
+  { n:'18', title:'Supreme Landscapes',        url:'https://www.supremelandscapesdublin.ie/', img:'img/supreme.jpg' },
 ];
 
-/* --- timeline, must match book_scene.py --- */
-const F_OPEN = 32, F_FLIP = 24, F_CLOSE = 30, FLIPS = 9;
-const TOTAL = 1 + F_OPEN + FLIPS * F_FLIP + F_CLOSE;        // 279 frames
-const AVAILABLE = window.FRAMES_AVAILABLE || TOTAL;           // a preview build may ship fewer frames
-const REST = [0, F_OPEN];                                     // rest frame per spread (0 = closed … 11 = closed at the back)
-for (let k = 1; k <= FLIPS; k++) REST.push(F_OPEN + k * F_FLIP);
-REST.push(TOTAL - 1);
-const SPREADS = REST.length - 1;                              // 11
-const LAST = AVAILABLE - 1;
-
-/* --- feel: the knobs you are most likely to want to turn --- */
+/* =====================================================================
+   FEEL — the knobs most worth turning
+   ===================================================================== */
 const CONFIG = {
-  tiltX: 2.2,          // degrees the film tips up/down with the mouse
-  tiltY: 2.6,          // degrees it turns left/right with the mouse
-  scrollPerFrame: 7,   // px of scrolling per film frame on desktop (bigger = slower scrub)
-  scrollPerFrameMobile: 9,
-  followSpeed: 14,     // how quickly the shown frame chases the scroll (lower = dreamier)
-  clickSpeed: 45,      // frames per second when a click plays to the next flip
-  snapDelay: 140,      // ms of scroll silence before snapping to the nearest rest point
+  flipSeconds: 0.78,       // one page turn
+  cascadeGap: 0.06,        // seconds between leaves when jumping several pages
+  cameraSeconds: 1.7,      // the dolly in when the book opens
+  bloom: { strength: 0.3, radius: 0.5, threshold: 0.86 },
+  lamp: 9,                 // spot light on the book (the desk lighting is baked)
+  desk: 0.36,              // brightness of the baked desk
+  parallax: 0.018,         // how much the camera follows the mouse
+  hoverScrollSpeed: 0.055, // page heights per second when a page plays on hover
 };
+
+/* =====================================================================
+   BOOK GEOMETRY — metres, matching the Blender scene the desk was baked in
+   ===================================================================== */
+const PAGE_W = 0.30, PAGE_D = 0.16875;     // 16:9 leaf; spine at x=0, fore edge at +x, depth along z
+const LEAF_T = 0.0009, BOARD_T = 0.0025, OVER = 0.004;
+const SEGS = 40;
+const N_LEAVES = 11;                        // cover + 9 work leaves + back cover
+
+/* camera rigs fitted to the reference framing: target (x, z), elevation°, distance */
+const RIGS = {
+  landscape: { closed: [0.0987, -0.094, 58, 1.2543], open: [0.0, -0.0387, 56, 0.8732] },
+  portrait:  { closed: [0.15, -0.0882, 60, 1.2185],  open: [0.0286, -0.0615, 60, 1.1519] },
+};
+const LENS_HALF = Math.atan(18 / 40);       // 40 mm lens, 36 mm sensor width (landscape fits the width)
+const LENS_HALF_V = Math.atan(12 / 40);     // 24 mm sensor height (portrait fits the height)
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const touchOnly = matchMedia('(hover: none)').matches;
-const big = Math.max(innerWidth, innerHeight) * Math.min(devicePixelRatio, 2) > 1100;
-const SIZE = big ? 1920 : 960;
-const FW = SIZE, FH = SIZE * 9 / 16;
-const src = (i) => `frames/${SIZE}/f${String(i).padStart(4, '0')}.webp`;
+const small = Math.min(screen.width, screen.height) < 820 || matchMedia('(pointer: coarse)').matches;
 
-/* --- frame store --- */
-const frames = new Array(TOTAL).fill(null);
-let loaded = 0;
-function load(i) {
-  // decode off the main thread into a bitmap so drawing a frame costs nothing later
-  return new Promise((res) => {
-    if (frames[i]) return res(frames[i]);
-    const im = new Image();
-    im.decoding = 'async';
-    im.onload = async () => {
-      let bmp = im;
-      try { if (window.createImageBitmap) bmp = await createImageBitmap(im); } catch (e) {}
-      frames[i] = bmp; loaded++; res(bmp);
-    };
-    im.onerror = () => res(null);
-    im.src = src(i);
-  });
+/* =====================================================================
+   RENDERER + POST
+   ===================================================================== */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, small ? 2 : 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.02, 20);
+
+const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+const composer = new EffectComposer(renderer, rt);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), CONFIG.bloom.strength, CONFIG.bloom.radius, CONFIG.bloom.threshold);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+/* =====================================================================
+   LIGHT — the desk is pre-lit; the lamp lights the book and casts shadows
+   ===================================================================== */
+const lamp = new THREE.SpotLight(0xeef4ff, CONFIG.lamp, 4, 0.42, 0.95, 2);
+lamp.position.set(0.15, 1.7, -0.35);
+lamp.target.position.set(0.12, 0, -0.02);
+lamp.castShadow = true;
+lamp.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+lamp.shadow.bias = -0.00012; lamp.shadow.normalBias = 0.0015; lamp.shadow.radius = 5;
+lamp.shadow.camera.near = 0.8; lamp.shadow.camera.far = 2.4;
+scene.add(lamp, lamp.target);
+scene.add(new THREE.HemisphereLight(0x9aa6c0, 0x050505, 0.06));
+
+/* small procedural studio for reflections on the cover */
+function studio() {
+  const room = new THREE.Scene();
+  room.add(new THREE.Mesh(new THREE.BoxGeometry(6, 4, 6), new THREE.MeshBasicMaterial({ color: 0x050506, side: THREE.BackSide })));
+  const panel = (w, h, c, x, y, z, rx) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c), side: THREE.DoubleSide })); m.position.set(x, y, z); m.rotation.x = rx; room.add(m); };
+  panel(1.4, 1.0, 0xf0f4ff, 0.15, 1.8, -0.3, Math.PI / 2);
+  panel(0.6, 2.0, 0x1a2030, -2.8, 1.0, 0.5, 0);
+  const pm = new THREE.PMREMGenerator(renderer);
+  const env = pm.fromScene(room, 0.03).texture; pm.dispose(); return env;
 }
-async function loadAll(onProgress) {
-  // a few in flight at once; order: the opening first, then the flips
-  let next = 0;
-  const worker = async () => { while (next < AVAILABLE) { const i = next++; await load(i); onProgress(); } };
-  await Promise.all([worker(), worker(), worker(), worker()]);
+scene.environment = studio();
+
+/* =====================================================================
+   LOADING
+   ===================================================================== */
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+const loader = new THREE.TextureLoader();
+let loaded = 0, toLoad = 0;
+const loadbar = document.getElementById('loadbar');
+function tex(src, { srgb = true, repeat = false } = {}) {
+  toLoad++;
+  return new Promise((res, rej) => loader.load(src, (t) => {
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = maxAniso;
+    if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    loaded++; loadbar.style.width = `${(loaded / toLoad) * 100}%`;
+    res(t);
+  }, undefined, () => rej(new Error('could not load ' + src))));
 }
-function nearestLoaded(i) {
-  if (frames[i]) return frames[i];
-  for (let d = 1; d < TOTAL; d++) {
-    if (frames[i - d]) return frames[i - d];
-    if (frames[i + d]) return frames[i + d];
+
+/* =====================================================================
+   DESK — baked in Blender: wood, lamp pool and the pencil, one image
+   ===================================================================== */
+function buildDesk(t) {
+  const desk = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(CONFIG.desk, CONFIG.desk, CONFIG.desk) }));
+  desk.rotation.x = -Math.PI / 2;
+  scene.add(desk);
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.ShadowMaterial({ opacity: 0.55 }));
+  catcher.rotation.x = -Math.PI / 2; catcher.position.y = 0.0003; catcher.receiveShadow = true;
+  scene.add(catcher);
+}
+function softShadow(w, d, x, opacity) {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.filter = 'blur(18px)'; g.fillStyle = '#000'; g.fillRect(36, 44, 184, 168);
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity, depthWrite: false, color: 0x000000 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.0002, 0); m.renderOrder = 1;
+  scene.add(m); return m;
+}
+
+/* =====================================================================
+   PAGES — a strip that bends around the spine; two single-sided layers
+   ===================================================================== */
+function leafGeometry(w, d) {
+  const g = new THREE.BufferGeometry(), cols = SEGS + 1, per = cols * 2;
+  const pos = new Float32Array(per * 2 * 3), uv = new Float32Array(per * 2 * 2), idx = [];
+  for (let L = 0; L < 2; L++) for (let r = 0; r < 2; r++) for (let c = 0; c < cols; c++) {
+    const i = L * per + r * cols + c;
+    pos.set([(c / SEGS) * w, 0, r === 0 ? -d / 2 : d / 2], i * 3);
+    uv.set([L === 0 ? c / SEGS : 1 - c / SEGS, r === 0 ? 1 : 0], i * 2);
   }
-  return null;
+  for (let c = 0; c < SEGS; c++) { const a = c, b = c + 1, e = cols + c, f = cols + c + 1; idx.push(a, e, b, b, e, f); }
+  const front = idx.length;
+  for (let c = 0; c < SEGS; c++) { const a = per + c, b = per + c + 1, e = per + cols + c, f = per + cols + c + 1; idx.push(a, b, e, b, f, e); }
+  g.setIndex(idx); g.addGroup(0, front, 0); g.addGroup(front, idx.length - front, 1);
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.computeVertexNormals();
+  return g;
+}
+const screenMat = (map) => new THREE.MeshStandardMaterial({ map, emissiveMap: map, emissive: new THREE.Color(0.8, 0.8, 0.8), color: new THREE.Color(0.35, 0.35, 0.35), roughness: 0.85, metalness: 0, envMapIntensity: 0.15 });
+const coverMat = (map) => new THREE.MeshStandardMaterial({ map, roughness: 0.4, metalness: 0, envMapIntensity: 0.4, color: new THREE.Color(0.3, 0.3, 0.3) });
+
+const ease3 = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+class Leaf {
+  /* flex 1 = paper, ~0.3 = board. A turn runs p from 0 to 1: the fore edge lifts first and leads,
+     the page bends as it is carried over, then the hinge catches up and it lays down flat. */
+  constructor(i, front, back, { w = PAGE_W, d = PAGE_D, flex = 1, frontMat, backMat } = {}) {
+    this.i = i; this.w = w; this.flex = flex;
+    this.from = 0; this.to = 0; this.p = 1; this.turn = 0; this.dirty = true;
+    this.geo = leafGeometry(w, d);
+    this.mesh = new THREE.Mesh(this.geo, [frontMat || screenMat(front), backMat || screenMat(back)]);
+    this.mesh.castShadow = true; this.mesh.receiveShadow = true; this.mesh.userData.leaf = this;
+  }
+  base(t) {
+    const right = BOARD_T + (N_LEAVES - 1 - this.i) * LEAF_T, left = BOARD_T + this.i * LEAF_T;
+    return right + (left - right) * t;
+  }
+  update() {
+    if (!this.dirty) return;
+    this.dirty = false;
+    const f = this.flex, p = this.p;
+    const lead = 0.2 * f, lag = 0.13 * f;
+    const span = (this.to - this.from) * Math.PI, a0 = this.from * Math.PI;
+    const fore = a0 + span * ease3(p / (1 - lead));            // the edge you hold
+    const hinge = a0 + span * ease3((p - lag) / (1 - lag));    // the spine side follows
+    const bulge = Math.sin(Math.PI * p) * 0.5 * f;
+    const lift = Math.cos((hinge + fore) / 2);   // bow away from whichever stack the page is over
+    this.turn = this.from + (this.to - this.from) * ease3((p - lag) / (1 - lag));
+    const pos = this.geo.attributes.position.array, cols = SEGS + 1, per = cols * 2, ds = this.w / SEGS;
+    let x = 0, y = this.base(THREE.MathUtils.clamp(this.turn, 0, 1)) + 0.0003;
+    for (let c = 0; c <= SEGS; c++) {
+      if (c > 0) {
+        const s = c / SEGS;
+        const a = hinge + (fore - hinge) * Math.pow(s, 1.6) + bulge * lift * (s - s * s);   // lifted paper bows upward
+        x += ds * Math.cos(a); y += ds * Math.sin(a);
+      }
+      const yy = Math.max(y, 0.0004);
+      for (const k of [c, cols + c, per + c, per + cols + c]) { pos[k * 3] = x; pos[k * 3 + 1] = yy; }
+    }
+    this.geo.attributes.position.needsUpdate = true;
+    this.geo.computeVertexNormals(); this.geo.computeBoundingSphere();
+  }
 }
 
-/* --- drawing --- */
-const canvas = document.getElementById('gl'), ctx = canvas.getContext('2d', { alpha: false });
-const film = document.getElementById('film');
-let cw = 0, ch = 0, dpr = 1, drawn = -1;
-function resize() {
-  dpr = Math.min(devicePixelRatio, 2);
-  cw = innerWidth; ch = innerHeight;
-  canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
-  drawn = -1; draw();
-  layoutSpacer();
-}
-function draw() {
-  const i = Math.round(cur);
-  const im = nearestLoaded(i);
-  if (!im) return;
-  if (drawn === i && drawnIm === im) return;
-  drawn = i; drawnIm = im;
-  const W = canvas.width, H = canvas.height;
-  // landscape: cover the viewport. portrait: the book is the central 74% of the film,
-  // so that band fills the phone's width and sits a little below centre.
-  const portrait = cw < ch;
-  const s = portrait ? W / (FW * 0.74) : Math.max(W / FW, H / FH);
-  const dw = FW * s, dh = FH * s;
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  ctx.drawImage(im, (W - dw) / 2, portrait ? H * 0.56 - dh / 2 : (H - dh) / 2, dw, dh);
-}
-let drawnIm = null;
+/* =====================================================================
+   BOOK
+   ===================================================================== */
+const book = new THREE.Group(); scene.add(book);
+const leaves = [];
+let spread = 0, opened = false, busy = 0;
+const parts = {};
 
-/* --- scrub state --- */
-let cur = 0;                   // current frame (float)
-let target = 0;                // where scrolling says we should be
-let spread = 0;
-let pxPerFrame = 7;
-const spacer = document.getElementById('spacer');
-function layoutSpacer() {
-  pxPerFrame = innerWidth < 720 ? CONFIG.scrollPerFrameMobile : CONFIG.scrollPerFrame;
-  spacer.style.height = `${innerHeight + LAST * pxPerFrame}px`;
+function edgeTexture() {
+  const c = document.createElement('canvas'); c.width = 8; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#d9d5cc'; g.fillRect(0, 0, 8, 128);
+  for (let y = 0; y < 128; y += 2) { g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(0, y, 8, 1); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 }
-function frameFromScroll() { return Math.max(0, Math.min(LAST, scrollY / pxPerFrame)); }
-function scrollForFrame(f) { return f * pxPerFrame; }
-function spreadForFrame(f) {
-  for (let s = SPREADS; s >= 0; s--) if (f >= REST[s] - 0.5) return s;
+
+function buildBook(T) {
+  const bw = PAGE_W + OVER, bd = PAGE_D + OVER * 2;
+  leaves.push(new Leaf(0, null, null, { w: bw, d: bd, flex: 0.3, frontMat: coverMat(T.cover), backMat: screenMat(T.contents) }));
+  for (let k = 0; k < 9; k++) leaves.push(new Leaf(k + 1, T.works[2 * k], T.works[2 * k + 1]));
+  leaves.push(new Leaf(10, null, null, { w: bw, d: bd, flex: 0.3, frontMat: screenMat(T.end), backMat: coverMat(T.coverback) }));
+  leaves.forEach(l => book.add(l.mesh));
+
+  const cloth = new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.6, envMapIntensity: 0.5 });
+  const edge = new THREE.MeshStandardMaterial({ map: edgeTexture(), roughness: 0.9 });
+  const full = N_LEAVES * LEAF_T + BOARD_T * 2;
+  const mk = (geo, mat, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow; m.receiveShadow = true; book.add(m); return m; };
+  parts.board = mk(new THREE.BoxGeometry(bw, BOARD_T, bd), cloth); parts.board.position.set(bw / 2, BOARD_T / 2, 0);
+  parts.boardL = mk(new THREE.BoxGeometry(bw, BOARD_T, bd), cloth); parts.boardL.position.set(-bw / 2, BOARD_T / 2, 0);
+  parts.spine = mk(new THREE.BoxGeometry(BOARD_T * 1.6, full, bd), cloth); parts.spine.position.set(-BOARD_T * 0.6, full / 2, 0);
+  parts.block = mk(new THREE.BoxGeometry(PAGE_W - 0.002, 1, PAGE_D - 0.002), edge);
+  parts.blockL = mk(new THREE.BoxGeometry(PAGE_W - 0.002, 1, PAGE_D - 0.002), edge);
+  parts.shR = softShadow(bw + 0.09, bd + 0.08, bw / 2, 0.75);
+  parts.shL = softShadow(bw + 0.09, bd + 0.08, -bw / 2, 0.75);
+  stacks();
+}
+/* the blocks stand in for the leaves underneath the top page on each side */
+function stacks() {
+  // only leaves lying still count; a leaf in the air must not be covered by the stack it left
+  let right = 0, left = 0;
+  for (const l of leaves) { const still = l.p >= 1; if (still && l.turn < 0.5) right++; else if (still) left++; }
+  const place = (m, n, x) => { const h = Math.max(0, n - 1) * LEAF_T; m.visible = h > 0.0002; m.scale.y = Math.max(h - 0.0002, 0.0001); m.position.set(x, BOARD_T + m.scale.y / 2, 0); };
+  place(parts.block, right, PAGE_W / 2); place(parts.blockL, left, -PAGE_W / 2);
+  let anyRight = 0, anyLeft = 0; for (const l of leaves) (l.turn < 0.5 ? anyRight++ : anyLeft++);
+  parts.board.visible = anyRight > 0 || right > 0; parts.boardL.visible = anyLeft > 0 || left > 0;
+  parts.shR.material.opacity = parts.board.visible ? 0.75 : 0; parts.shL.material.opacity = parts.boardL.visible ? 0.75 : 0;
+}
+
+/* =====================================================================
+   TURNING
+   ===================================================================== */
+const SPREADS = N_LEAVES;   // 0 closed front … 11 closed back
+function go(s) {
+  s = THREE.MathUtils.clamp(s, 0, SPREADS);
+  if (s === spread) return;
+  const dir = Math.sign(s - spread);
+  const order = [];
+  for (let i = 0; i < N_LEAVES; i++) if ((i < s) !== (i < spread)) order.push(i);
+  if (dir < 0) order.reverse();
+  stopHover();
+  order.forEach((i, k) => {
+    const l = leaves[i]; busy++;
+    gsap.killTweensOf(l);
+    l.from = l.turn; l.to = i < s ? 1 : 0; l.p = 0;
+    gsap.to(l, { p: 1, duration: reduceMotion ? 0.01 : CONFIG.flipSeconds, delay: k * CONFIG.cascadeGap, ease: 'none',
+      onUpdate: () => { l.dirty = true; }, onComplete: () => { busy = Math.max(0, busy - 1); l.dirty = true; l.update(); stacks(); } });
+  });
+  spread = s;
+  const open = s > 0 && s < SPREADS;
+  if (open !== opened) { opened = open; moveCamera(); }
+  ui();
+}
+
+/* =====================================================================
+   CAMERA
+   ===================================================================== */
+const cam = { x: 0, y: 0, z: 0, lx: 0, ly: 0, lz: 0, fov: 30 };
+const pointer = { x: 0, y: 0 }, ptr = { x: 0, y: 0 };
+const portrait = () => innerWidth < innerHeight;
+function rigNow() {
+  const r = RIGS[portrait() ? 'portrait' : 'landscape'][opened ? 'open' : 'closed'];
+  const [tx, tz, el, d] = r, e = THREE.MathUtils.degToRad(el);
+  return { x: tx, y: Math.sin(e) * d, z: tz + Math.cos(e) * d, lx: tx, ly: 0, lz: tz };
+}
+function moveCamera(dur = CONFIG.cameraSeconds) {
+  const r = rigNow();
+  gsap.killTweensOf(cam);
+  if (reduceMotion || dur < 0.05) { Object.assign(cam, r); return; }
+  gsap.to(cam, { ...r, duration: dur, ease: 'power3.inOut' });
+}
+function fit() {
+  const w = innerWidth, h = innerHeight, a = w / h;
+  renderer.setSize(w, h, false); composer.setSize(w, h);
+  bloom.resolution.set(w / 2, h / 2);
+  camera.aspect = a;
+  camera.fov = THREE.MathUtils.radToDeg(portrait() ? 2 * LENS_HALF_V : 2 * Math.atan(Math.tan(LENS_HALF) / a));
+  camera.updateProjectionMatrix();
+}
+function placeCamera(dt) {
+  ptr.x += (pointer.x - ptr.x) * Math.min(1, dt * 3); ptr.y += (pointer.y - ptr.y) * Math.min(1, dt * 3);
+  const p = reduceMotion || touchOnly ? 0 : CONFIG.parallax;
+  camera.position.set(cam.x + ptr.x * p, cam.y - ptr.y * p * 0.5, cam.z + ptr.y * p);
+  camera.lookAt(cam.lx + ptr.x * p * 0.3, cam.ly, cam.lz);
+}
+
+/* =====================================================================
+   HOVER — a page plays: tall sites scroll, short ones drift
+   ===================================================================== */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let hover = null;   // { leaf, face, work, tex, start }
+const fullTex = new Map();
+function workOn(leafIndex, face) {
+  if (leafIndex < 1 || leafIndex > 9) return null;
+  return WORKS[(leafIndex - 1) * 2 + (face === 0 ? 0 : 1)] ?? null;
+}
+function pick(cx, cy) {
+  ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects([...leaves.map(l => l.mesh), parts.block, parts.blockL, parts.board, parts.boardL].filter(Boolean), false);
+  return hits[0] || null;
+}
+function faceAt(hit) {
+  const l = hit?.object.userData.leaf; if (!l || !opened || busy) return null;
+  const face = hit.face.materialIndex;      // 0 front (right page), 1 back (left page)
+  if (face === 0 && l.i !== spread) return null;
+  if (face === 1 && l.i !== spread - 1) return null;
+  return { leaf: l, face, uv: hit.uv };
+}
+async function startHover(f) {
+  const work = workOn(f.leaf.i, f.face);
+  if (!work) return;
+  hover = { ...f, work, start: performance.now(), base: f.leaf.mesh.material[f.face].map };   // map and emissiveMap are the same image
+  let t = fullTex.get(work.img);
+  if (!t) { t = await tex(work.img); fullTex.set(work.img, t); }
+  if (!hover || hover.work !== work) return;
+  const im = t.image, win = Math.min(1, (im.width * PAGE_D / PAGE_W) / im.height);
+  hover.tex = t; hover.win = win;
+  t.repeat.set(1, win); t.offset.set(0, 1 - win);
+  const hm = f.leaf.mesh.material[f.face]; hm.map = t; hm.emissiveMap = t; hm.needsUpdate = true;
+}
+function stopHover() {
+  if (!hover) return;
+  const m = hover.leaf.mesh.material[hover.face];
+  m.map = hover.base; m.emissiveMap = hover.base; m.needsUpdate = true; hover = null;
+  tip.classList.remove('on'); canvas.style.cursor = 'default';
+}
+function tickHover() {
+  if (!hover?.tex) return;
+  const el = (performance.now() - hover.start) / 1000, t = hover.tex;
+  if (hover.win < 0.98) {
+    // scroll down the page, rest at the bottom, glide back up
+    const travel = 1 - hover.win, dur = travel / CONFIG.hoverScrollSpeed + 1.2;
+    const p = (el % (dur * 2)) / dur, k = p < 1 ? p : 2 - p;
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    t.offset.y = (1 - hover.win) * (1 - e);
+  } else {
+    // short pages: a slow push-in
+    const z = 1 - 0.06 * (0.5 - 0.5 * Math.cos(el * 0.5));
+    t.repeat.set(z, z * hover.win); t.offset.set((1 - z) / 2, (1 - z * hover.win) / 2);
+  }
+}
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+const tip = document.getElementById('tip');
+let downAt = null;
+canvas.addEventListener('pointermove', (e) => {
+  pointer.x = (e.clientX / innerWidth) * 2 - 1; pointer.y = (e.clientY / innerHeight) * 2 - 1;
+  if (e.pointerType !== 'mouse') return;
+  const hit = pick(e.clientX, e.clientY);
+  const f = faceAt(hit);
+  if (!opened) { canvas.style.cursor = hit ? 'pointer' : 'default'; return; }
+  const same = f && hover && hover.leaf === f.leaf && hover.face === f.face;
+  if (!same) { stopHover(); if (f && workOn(f.leaf.i, f.face)) startHover(f); }
+  const showTip = f && (workOn(f.leaf.i, f.face) || (f.leaf.i === 0 && f.face === 1));
+  canvas.style.cursor = hit ? 'pointer' : 'default';
+  tip.textContent = f && f.leaf.i === 0 ? 'Jump to project' : 'View site ↗';
+  tip.classList.toggle('on', !!showTip && !(f.leaf.i === 0 && !contentsRow(f)));
+  tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px';
+}, { passive: true });
+canvas.addEventListener('pointerleave', () => { stopHover(); pointer.x = pointer.y = 0; });
+canvas.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!downAt) return;
+  const dx = e.clientX - downAt.x, dy = e.clientY - downAt.y, quick = performance.now() - downAt.t < 600;
+  downAt = null;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { go(spread + (dx < 0 ? 1 : -1)); return; }   // swipe
+  if (Math.hypot(dx, dy) > 10 || !quick) return;
+  hideHint();
+  const hit = pick(e.clientX, e.clientY);
+  if (!opened) { if (hit) go(spread === 0 ? 1 : 0); return; }
+  const f = faceAt(hit);
+  if (f) {
+    const w = workOn(f.leaf.i, f.face);
+    if (w) { openSite(w.url); return; }
+    if (f.leaf.i === 0 && f.face === 1) { const row = contentsRow(f); if (row) { go(row); return; } }
+  }
+  // anywhere else: turn toward the side that was clicked
+  const side = e.clientX < innerWidth / 2 ? -1 : 1;
+  if (side > 0 && spread === SPREADS - 1) { go(0); return; }
+  go(spread + side);
+});
+/* contents page: which project row was clicked (design px of the 1536×864 page) */
+function contentsRow(f) {
+  if (!f?.uv) return 0;
+  const px = f.uv.x * 1536, py = (1 - f.uv.y) * 864;
+  const colX = [600, 1070], top = 190, step = 56;
+  for (let i = 0; i < WORKS.length; i++) {
+    const x = colX[Math.floor(i / 9)], y = top + (i % 9) * step;
+    if (px >= x - 10 && px <= x + 420 && py >= y - 32 && py <= y + 20) return Math.floor(i / 2) + 1 + (i % 2);   // odd projects sit on the next spread's left page
+  }
   return 0;
 }
-
-/* snap to the nearest rest point once scrolling settles */
-let settleTimer = null, snapping = null;
-addEventListener('scroll', () => {
-  if (snapping) return;
-  target = frameFromScroll();
-  clearTimeout(settleTimer);
-  settleTimer = setTimeout(snapToRest, CONFIG.snapDelay);
-}, { passive: true });
-function snapToRest() {
-  const f = frameFromScroll();
-  let best = REST[0];
-  for (const r of REST) if (r <= LAST && Math.abs(r - f) < Math.abs(best - f)) best = r;
-  if (Math.abs(best - f) < 0.5) return;
-  goToFrame(best, 0.6);
-}
-function goToFrame(f, dur = 1.1) {
-  f = Math.min(f, LAST);
-  if (snapping) snapping.kill();
-  const o = { f: cur };
-  snapping = gsap.to(o, { f, duration: reduceMotion ? 0 : dur, ease: 'power2.inOut',
-    onUpdate: () => { cur = target = o.f; scrollTo(0, scrollForFrame(o.f)); },
-    onComplete: () => { snapping = null; cur = target = f; scrollTo(0, scrollForFrame(f)); } });
-}
-function goToSpread(s) {
-  s = Math.max(0, Math.min(SPREADS, s));
-  const dist = Math.abs(REST[s] - cur);
-  goToFrame(REST[s], Math.min(2.2, 0.5 + dist / CONFIG.clickSpeed));
-}
-
-/* --- interaction --- */
-const stage = document.querySelector('.stage');
-const pointer = { x: 0, y: 0 }, tilt = { x: 0, y: 0 };
-let downAt = null;
-addEventListener('pointermove', (e) => { pointer.x = (e.clientX / innerWidth) * 2 - 1; pointer.y = (e.clientY / innerHeight) * 2 - 1; }, { passive: true });
-addEventListener('pointerdown', (e) => { if (e.target.closest('.nav, .bar')) return; downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
-addEventListener('pointerup', (e) => {
-  if (!downAt) return;
-  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
-  const quick = performance.now() - downAt.t < 600;
-  downAt = null;
-  if (moved > 8 || !quick || e.target.closest('.nav, .bar')) return;
-  document.getElementById('hint').classList.add('off');
-  const side = e.clientX < innerWidth * 0.5 ? -1 : 1;
-  if (spread === 0) return goToSpread(1);
-  if (spread === SPREADS) return goToSpread(0);                       // closed at the back: start again
-  if (side === 1 && spread === SPREADS - 1) return goToSpread(0);     // the back cover sends the book home
-  goToSpread(spread + side);
-});
-addEventListener('pointercancel', () => { downAt = null; });
+function openSite(url) { const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+let wheelAcc = 0, wheelLock = 0;
+addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const now = performance.now(); if (now < wheelLock) return;
+  wheelAcc += e.deltaY;
+  if (Math.abs(wheelAcc) > 60) { hideHint(); const d = Math.sign(wheelAcc); wheelAcc = 0; wheelLock = now + CONFIG.flipSeconds * 600; if (d > 0 && spread === SPREADS - 1) go(0); else go(spread + d); }
+}, { passive: false });
 addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToSpread(spread >= SPREADS - 1 ? 0 : spread + 1); }
-  if (e.key === 'ArrowLeft') { e.preventDefault(); goToSpread(spread - 1); }
-  if (e.key === 'Escape') goToSpread(0);
-  if (e.key === 'Home') goToSpread(1);
-  if (e.key === 'End') goToSpread(SPREADS - 1);
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(spread >= SPREADS - 1 ? 0 : spread + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(spread - 1); }
+  if (e.key === 'Escape') go(0);
 });
-document.getElementById('prev').addEventListener('click', () => goToSpread(spread - 1));
-document.getElementById('next').addEventListener('click', () => goToSpread(spread >= SPREADS - 1 ? 0 : spread + 1));
+document.getElementById('prev').addEventListener('click', () => go(spread - 1));
+document.getElementById('next').addEventListener('click', () => go(spread >= SPREADS - 1 ? 0 : spread + 1));
 
-/* --- UI --- */
+/* =====================================================================
+   UI
+   ===================================================================== */
 const hero = document.getElementById('hero'), bar = document.getElementById('bar'), hint = document.getElementById('hint');
 const linkL = document.getElementById('linkL'), linkR = document.getElementById('linkR');
-if (touchOnly) {
-  document.getElementById('heroSub').textContent = 'Tap the book to open it, scroll or tap to turn the pages';
-  hint.querySelector('span').textContent = 'Tap the book to open it';
-}
-function workOnFace(leaf, face) {
-  if (leaf <= 0 || leaf >= 10 && face === 'front') return null;
-  return (face === 'front' ? WORKS[(leaf - 1) * 2] : WORKS[(leaf - 1) * 2 + 1]) ?? null;
-}
-function setLink(el, w) {
-  el.classList.toggle('empty', !w);
-  if (!w) return;
-  el.href = w.url; el.innerHTML = `<span class="k">${w.n}</span>${w.title}<span class="go">↗</span>`;
-}
-let heroShown = true, lastSpread = -1;
-function updateUI() {
-  const s = spreadForFrame(cur);
-  if (s === lastSpread) return;
-  lastSpread = s; spread = s;
-  const open = s > 0 && s < SPREADS;
-  if (open === heroShown) {
-    heroShown = !open;
-    gsap.to(hero, { autoAlpha: open ? 0 : 1, y: open ? -16 : 0, duration: 0.7, ease: 'power2.out', overwrite: true });
-  }
+if (touchOnly) { document.getElementById('heroSub').textContent = 'Tap the book to open it, swipe to turn, tap a page to visit'; hint.querySelector('span').textContent = 'Tap the book to open it'; }
+function hideHint() { hint.classList.add('off'); }
+function setLink(el, w) { el.classList.toggle('empty', !w); if (w) { el.href = w.url; el.innerHTML = `<span class="k">${w.n}</span>${w.title}<span class="go">↗</span>`; } }
+let heroShown = true;
+function ui() {
+  const open = spread > 0 && spread < SPREADS;
+  if (open === heroShown) { heroShown = !open; gsap.to(hero, { autoAlpha: open ? 0 : 1, y: open ? -16 : 0, duration: 0.7, ease: 'power2.out', overwrite: true }); }
   bar.classList.toggle('on', open);
-  setLink(linkL, open ? workOnFace(s - 1, 'back') : null);
-  setLink(linkR, open ? workOnFace(s, 'front') : null);
-  document.getElementById('prev').disabled = s <= 0;
-  if (!open) hint.querySelector('span').textContent = `${touchOnly ? 'Tap' : 'Click'} the book to ${s === 0 ? 'open it' : 'start again'}`;
+  setLink(linkL, open ? workOn(spread - 1, 1) : null);
+  setLink(linkR, open ? workOn(spread, 0) : null);
+  document.getElementById('prev').disabled = spread <= 0;
 }
 function intro() {
   gsap.timeline({ defaults: { ease: 'power3.out' } })
@@ -334,37 +565,38 @@ function intro() {
     .to('#hint', { opacity: 1, duration: 0.8 }, 1.2);
 }
 
-/* --- main loop: ease the shown frame toward the scroll target, tilt with the mouse --- */
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+const pageTex = (n) => tex(`img/pages/${n}.webp`);
+async function boot() {
+  const [desk, cover, coverback, contents, end, ...works] = await Promise.all([
+    tex('img/desk.jpg'), pageTex('cover'), pageTex('coverback'), pageTex('contents'), pageTex('end'),
+    ...WORKS.map((w, i) => pageTex('work' + String(i + 1).padStart(2, '0'))),
+  ]);
+  buildDesk(desk);
+  buildBook({ cover, coverback, contents, end, works });
+  fit(); Object.assign(cam, rigNow());
+  leaves.forEach(l => l.update()); placeCamera(0.016);
+  renderer.compile(scene, camera); composer.render();
+  document.getElementById('loader').classList.add('off');
+  intro();
+  window.almBook = { go, get spread() { return spread; } };
+  last = performance.now(); requestAnimationFrame(loop);
+}
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  cur += (target - cur) * Math.min(1, dt * CONFIG.followSpeed);
-  if (Math.abs(target - cur) < 0.02) cur = target;
-  draw();
-  updateUI();
-  if (!reduceMotion && !touchOnly) {
-    tilt.x += (pointer.y * -CONFIG.tiltX - tilt.x) * Math.min(1, dt * 4);
-    tilt.y += (pointer.x * CONFIG.tiltY - tilt.y) * Math.min(1, dt * 4);
-    film.style.transform = `rotateX(${tilt.x.toFixed(3)}deg) rotateY(${tilt.y.toFixed(3)}deg) scale(1.03)`;
-  }
+  for (const l of leaves) l.update();
+  stacks();
+  tickHover();
+  placeCamera(dt);
+  composer.render();
   requestAnimationFrame(loop);
 }
-
-/* --- boot: rest frames first, then everything else in order --- */
-async function boot() {
-  const loadbar = document.getElementById('loadbar');
-  const tick = () => { loadbar.style.width = `${(loaded / AVAILABLE) * 100}%`; };
-  resize();
-  await load(0); draw();
-  await loadAll(tick);
-  document.getElementById('loader').classList.add('off');
-  scrollTo(0, 0);
-  intro();
-  requestAnimationFrame(loop);
-}
-addEventListener('resize', resize);
-history.scrollRestoration = 'manual';
-boot();
+let lastPortrait = portrait();
+addEventListener('resize', () => { fit(); if (portrait() !== lastPortrait) { lastPortrait = portrait(); moveCamera(0.01); } });
+boot().catch(err => { console.error(err); document.getElementById('loader').innerHTML = `<p style="font:14px Poppins;color:#fff">Could not load the book. ${err?.message ?? ''}</p>`; });
 </script>
 </body>
 </html>

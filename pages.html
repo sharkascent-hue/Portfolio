@@ -56,7 +56,7 @@ function clothFill(g) {
   v.addColorStop(0, 'rgba(255,255,255,.05)'); v.addColorStop(1, 'rgba(0,0,0,.3)');
   g.fillStyle = v; g.fillRect(0, 0, W, H);
 }
-function paper(g) { g.fillStyle = '#f6f5f0'; g.fillRect(0, 0, W, H); grain(g, 0.028); }
+function paper(g) { g.fillStyle = '#0c0c0e'; g.fillRect(0, 0, W, H); const v = g.createRadialGradient(W * .5, H * .5, 100, W * .5, H * .5, 1000); v.addColorStop(0, 'rgba(255,255,255,.04)'); v.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = v; g.fillRect(0, 0, W, H); grain(g, 0.04); }
 const faces = {};
 function cover() {
   const c = canvas(), g = c.getContext('2d'); clothFill(g);
@@ -78,29 +78,29 @@ function coverBack() {
 function contents() {
   const c = canvas(), g = c.getContext('2d'); paper(g);
   const pad = 110;
-  drawLogo(g, pad, 76, 34, '#141414');
-  g.fillStyle = '#141414'; g.font = '500 74px Poppins, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  drawLogo(g, pad, 76, 34, '#f2f2f2');
+  g.fillStyle = '#f2f2f2'; g.font = '500 74px Poppins, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   g.letterSpacing = '-3px'; g.fillText('Contents', pad, 250); g.letterSpacing = '0px';
-  g.fillStyle = 'rgba(20,20,20,.5)'; g.font = '400 20px "JetBrains Mono", monospace';
+  g.fillStyle = 'rgba(255,255,255,.45)'; g.font = '400 20px "JetBrains Mono", monospace';
   g.fillText('18 projects', pad, 292);
   const colX = [600, 1070], top = 190, step = 56;
   WORKS.forEach((w, i) => {
     const col = Math.floor(i / 9), row = i % 9, x = colX[col], y = top + row * step;
-    g.fillStyle = 'rgba(20,20,20,.45)'; g.font = '500 19px "JetBrains Mono", monospace'; g.fillText(w.n, x, y);
-    g.fillStyle = '#1a1a1a'; g.font = '500 25px Poppins, sans-serif'; g.letterSpacing = '-0.5px'; g.fillText(w.title, x + 48, y); g.letterSpacing = '0px';
-    g.fillStyle = 'rgba(20,20,20,.08)'; g.fillRect(x, y + 15, 410, 2);
+    g.fillStyle = 'rgba(255,255,255,.4)'; g.font = '500 19px "JetBrains Mono", monospace'; g.fillText(w.n, x, y);
+    g.fillStyle = '#ededed'; g.font = '500 25px Poppins, sans-serif'; g.letterSpacing = '-0.5px'; g.fillText(w.title, x + 48, y); g.letterSpacing = '0px';
+    g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(x, y + 15, 410, 2);
   });
-  g.fillStyle = 'rgba(20,20,20,.45)'; g.font = '400 20px "JetBrains Mono", monospace';
+  g.fillStyle = 'rgba(255,255,255,.4)'; g.font = '400 20px "JetBrains Mono", monospace';
   g.fillText('AlmLab — the formula for growth', pad, H - 64);
   faces['contents'] = c;
 }
 function end() {
   const c = canvas(), g = c.getContext('2d'); paper(g);
   const h = 96, w = h * logoImg.width / logoImg.height;
-  drawLogo(g, (W - w) / 2, (H - h) / 2 - 30, h, '#141414');
-  g.fillStyle = 'rgba(20,20,20,.55)'; g.font = '400 22px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  drawLogo(g, (W - w) / 2, (H - h) / 2 - 30, h, '#f2f2f2');
+  g.fillStyle = 'rgba(255,255,255,.5)'; g.font = '400 22px "JetBrains Mono", monospace'; g.textAlign = 'center';
   g.fillText('WEBSITES  ·  ADS  ·  SOCIAL  ·  SEO', W / 2, H / 2 + 70);
-  g.fillStyle = '#141414'; g.font = '500 24px Poppins, sans-serif';
+  g.fillStyle = '#f2f2f2'; g.font = '500 24px Poppins, sans-serif';
   g.fillText('almlabmarketing.com', W / 2, H - 70);
   faces['end'] = c;
 }

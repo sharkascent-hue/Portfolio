@@ -140,14 +140,14 @@ def procedural_wood():
     tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = image(os.path.join(TEX, 'wood.png')); tex.extension = 'REPEAT'
     nt.links.new(mp.outputs['Vector'], tex.inputs['Vector'])
     tint = nt.nodes.new('ShaderNodeMix'); tint.data_type = 'RGBA'; tint.blend_type = 'MULTIPLY'; tint.inputs['Factor'].default_value = 1.0
-    tint.inputs[7].default_value = (0.42, 0.39, 0.35, 1)
+    tint.inputs[7].default_value = (0.14, 0.135, 0.13, 1)
     nt.links.new(tex.outputs['Color'], tint.inputs[6])
     # fine grain: long thin streaks, multiplied in gently
     mp2 = nt.nodes.new('ShaderNodeMapping'); mp2.inputs['Scale'].default_value = (1.0, 22.0, 1.0)
     nt.links.new(coord.outputs['Object'], mp2.inputs['Vector'])
     grain = nt.nodes.new('ShaderNodeTexNoise'); grain.inputs['Scale'].default_value = 90.0; grain.inputs['Detail'].default_value = 6.0; grain.inputs['Roughness'].default_value = 0.7
     nt.links.new(mp2.outputs['Vector'], grain.inputs['Vector'])
-    gr = nt.nodes.new('ShaderNodeMapRange'); gr.inputs['To Min'].default_value = 0.78; gr.inputs['To Max'].default_value = 1.18
+    gr = nt.nodes.new('ShaderNodeMapRange'); gr.inputs['To Min'].default_value = 0.9; gr.inputs['To Max'].default_value = 1.08
     nt.links.new(grain.outputs['Fac'], gr.inputs['Value'])
     mul = nt.nodes.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'; mul.inputs['Factor'].default_value = 1.0
     nt.links.new(tint.outputs[2], mul.inputs[6])
@@ -155,12 +155,12 @@ def procedural_wood():
     nt.links.new(gr.outputs['Result'], gcol.inputs[0]); nt.links.new(gr.outputs['Result'], gcol.inputs[1]); nt.links.new(gr.outputs['Result'], gcol.inputs[2])
     nt.links.new(gcol.outputs['Color'], mul.inputs[7])
     nt.links.new(mul.outputs[2], bsdf.inputs['Base Color'])
-    bsdf.inputs['Roughness'].default_value = 0.46
-    if 'Specular IOR Level' in bsdf.inputs: bsdf.inputs['Specular IOR Level'].default_value = 0.35
+    bsdf.inputs['Roughness'].default_value = 0.4
+    if 'Specular IOR Level' in bsdf.inputs: bsdf.inputs['Specular IOR Level'].default_value = 0.3
     # normal map from the photo plus a micro bump from the grain
     ntex = nt.nodes.new('ShaderNodeTexImage'); ntex.image = image(os.path.join(TEX, 'wood_n.png'), True); ntex.extension = 'REPEAT'
     nt.links.new(mp.outputs['Vector'], ntex.inputs['Vector'])
-    nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.7
+    nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.35
     nt.links.new(ntex.outputs['Color'], nm.inputs['Color'])
     bump = nt.nodes.new('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.08; bump.inputs['Distance'].default_value = 0.0005
     nt.links.new(grain.outputs['Fac'], bump.inputs['Height']); nt.links.new(nm.outputs['Normal'], bump.inputs['Normal'])
@@ -280,7 +280,7 @@ def add_props():
             if l.to_socket.name == 'Base Color': sh.node_tree.links.remove(l)
         image_plane(name + '_shadow', sh, width * 1.02, h * 1.04, (x + 0.004, y - 0.006, 0.0006), (0, 0, rotz), cast_shadow=False)
     # just the pencil: a sleek desk, nothing to compete with the book
-    flat('pencil', 'pencil.png', 0.19, -0.14, -0.14, math.radians(25))
+    flat('pencil', 'pencil.png', 0.19, -0.26, -0.2, math.radians(35))
 
 
 def box(name, size, loc, mat):
@@ -369,8 +369,9 @@ def build(width, height, samples):
     scene.render.image_settings.color_mode = 'RGB'
     scene.view_settings.view_transform = 'AgX'
     scene.view_settings.look = 'AgX - Medium High Contrast'
-    scene.view_settings.exposure = 0.0
+    scene.view_settings.exposure = -0.35
     scene.render.film_transparent = False
+    # glow is added in post (encode.py) — the compositor API changed in Blender 5
     try:
         scene.render.threads_mode = 'AUTO'
     except Exception:
@@ -388,13 +389,13 @@ def build(width, height, samples):
     # lamp: a hard spot overhead, a little in front, plus a faint cool fill
     bpy.ops.object.light_add(type='SPOT', location=(0.15, 0.35, 1.7))
     lamp = bpy.context.active_object; lamp.name = 'lamp'
-    lamp.data.energy = 640; lamp.data.color = (1.0, 0.93, 0.84)
-    lamp.data.spot_size = math.radians(38); lamp.data.spot_blend = 0.9
+    lamp.data.energy = 460; lamp.data.color = (0.93, 0.96, 1.0)
+    lamp.data.spot_size = math.radians(30); lamp.data.spot_blend = 1.0
     lamp.data.shadow_soft_size = 0.34
     lamp.rotation_euler = (math.radians(-11), 0, 0)
     bpy.ops.object.light_add(type='AREA', location=(-1.6, 0.6, 0.9))
     fill = bpy.context.active_object; fill.name = 'fill'
-    fill.data.energy = 22; fill.data.size = 2.2; fill.data.color = (0.75, 0.82, 1.0)
+    fill.data.energy = 6; fill.data.size = 2.2; fill.data.color = (0.75, 0.82, 1.0)
     fill.rotation_euler = (math.radians(55), math.radians(-5), math.radians(-60))
 
     # book materials
@@ -402,9 +403,9 @@ def build(width, height, samples):
                                 roughness=0.62, tint=(0.22, 0.22, 0.22), normal_strength=0.5, tex_scale=(6, 6), spec=0.45)
     face = lambda k: image(os.path.join(FACES, k + '.png'))
     rim = principled_material('rim', None, None, roughness=0.9, flat_color=(0.86, 0.84, 0.78))
-    def paper(f, b, name, rough=0.32, emit=0.32):
-        return [principled_material(name + '_f', face(f), None, roughness=rough, spec=0.5, emit=emit),
-                principled_material(name + '_b', face(b), None, roughness=rough, spec=0.5, emit=emit, mirror=True), rim]
+    def paper(f, b, name, rough=0.85, emit=0.75):
+        return [principled_material(name + '_f', face(f), None, roughness=rough, spec=0.1, emit=emit),
+                principled_material(name + '_b', face(b), None, roughness=rough, spec=0.1, emit=emit, mirror=True), rim]
 
     # boards and spine
     box('backboard', (PAGE_W + OVER, PAGE_D + 2 * OVER, BOARD_T), ((PAGE_W + OVER) / 2, 0, BOARD_T / 2), cloth)
@@ -413,15 +414,17 @@ def build(width, height, samples):
 
     leaves = []
     works = ['work%02d' % i for i in range(1, 19)]
-    cov = paper('cover', 'contents', 'm_cover', rough=0.55, emit=0.0)
-    cov[1].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 0.32
-    cov[1].node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.32
+    cov = paper('cover', 'contents', 'm_cover', rough=0.85, emit=0.75)   # both faces wired; the cover itself does not glow
+    cov[0].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 0.0
+    cov[0].node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.5
+    cov[0].node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value = 0.4
     leaves.append(Leaf(0, 'cover', 'contents', PAGE_W + OVER, PAGE_D + 2 * OVER, 0.22, cov))
     for k in range(9):
         leaves.append(Leaf(k + 1, works[2 * k], works[2 * k + 1], PAGE_W, PAGE_D, 0.62, paper(works[2 * k], works[2 * k + 1], 'm_leaf%d' % (k + 1))))
-    bk = paper('end', 'coverback', 'm_back', rough=0.32, emit=0.32)
+    bk = paper('end', 'coverback', 'm_back', rough=0.85, emit=0.75)
     bk[1].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = 0.0
-    bk[1].node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.55
+    bk[1].node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.5
+    bk[1].node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value = 0.4
     leaves.append(Leaf(10, 'end', 'coverback', PAGE_W + OVER, PAGE_D + 2 * OVER, 0.22, bk))
 
     add_props()
@@ -429,19 +432,23 @@ def build(width, height, samples):
     # camera
     bpy.ops.object.camera_add()
     cam = bpy.context.active_object; cam.name = 'cam'
-    cam.data.lens = 40; cam.data.sensor_width = 36
+    cam.data.lens = 40; cam.data.sensor_width = 36; cam.data.sensor_fit = 'VERTICAL' if ORIENT == 'portrait' else 'HORIZONTAL'
     cam.data.dof.use_dof = True; cam.data.dof.aperture_fstop = 9.0
     scene.camera = cam
     return scene, cam, leaves
 
 
 # closed and open camera rigs: target, elevation (deg), distance
-RIG_CLOSED = (Vector((0.07, 0.05, 0.0)), 43.0, 0.92)
-RIG_OPEN = (Vector((0.0, -0.01, 0.0)), 37.0, 0.96)
+RIGS = {   # fitted by fit_camera.py to the reference framing
+    'landscape': {'closed': (Vector((0.0987, 0.094, 0.0)), 58.0, 1.2543), 'open': (Vector((0.0, 0.0387, 0.0)), 56.0, 0.8732)},
+    'portrait':  {'closed': (Vector((0.15, 0.0882, 0.0)), 60.0, 1.2185), 'open': (Vector((0.0286, 0.0615, 0.0)), 60.0, 1.1519)},
+}
+ORIENT = 'landscape'
+
 
 
 def place_camera(cam, blend):
-    t0, e0, d0 = RIG_CLOSED; t1, e1, d1 = RIG_OPEN
+    t0, e0, d0 = RIGS[ORIENT]['closed']; t1, e1, d1 = RIGS[ORIENT]['open']
     tgt = t0.lerp(t1, blend); el = math.radians(e0 + (e1 - e0) * blend); d = d0 + (d1 - d0) * blend
     pos = tgt + Vector((0, -math.cos(el) * d, math.sin(el) * d))
     cam.location = pos
@@ -459,6 +466,26 @@ def apply_frame(frame, cam, leaves):
     place_camera(cam, camb)
 
 
+def page_quads(scene, cam, leaves, frame):
+    """Corners (TL, TR, BR, BL of the page image) in frame fractions, y from the top."""
+    from bpy_extras.object_utils import world_to_camera_view
+    turns, _ = leaf_state(frame)
+    cols = SEGS + 1
+    def corners(lf, idx):
+        o = lf.obj; m = o.matrix_world
+        pts = []
+        for i in idx:
+            v = world_to_camera_view(scene, cam, m @ lf.me.vertices[i].co)
+            pts.append([round(v.x, 5), round(1 - v.y, 5)])
+        return pts
+    left = right = None
+    nturned = sum(1 for t in turns if t >= 0.999)
+    if 0 < nturned < N_LEAVES:
+        right = corners(leaves[nturned], (0, SEGS, cols + SEGS, cols))
+        left = corners(leaves[nturned - 1], (SEGS, 0, cols, cols + SEGS))
+    return {'frame': frame, 'left': left, 'right': right}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', default='frames')
@@ -468,10 +495,23 @@ def main():
     ap.add_argument('--end', type=int, default=TOTAL - 1)
     ap.add_argument('--test', action='store_true')
     ap.add_argument('--frame', type=int, default=None)
+    ap.add_argument('--portrait', action='store_true')
+    ap.add_argument('--quads', default=None, help='write page corner JSON for the rest frames and exit')
     a = ap.parse_args()
-    height = round(a.width * 9 / 16)
+    global ORIENT
+    ORIENT = 'portrait' if a.portrait else 'landscape'
+    height = round(a.width * 16 / 9) if a.portrait else round(a.width * 9 / 16)
     os.makedirs(a.out, exist_ok=True)
     scene, cam, leaves = build(a.width, height, a.samples)
+    if a.quads:
+        import json
+        rests = [0, F_OPEN] + [F_OPEN + k * F_FLIP for k in range(1, 10)] + [TOTAL - 1]
+        data = []
+        for f in rests:
+            apply_frame(f, cam, leaves); bpy.context.view_layer.update()
+            data.append(page_quads(scene, cam, leaves, f))
+        json.dump({'orient': ORIENT, 'aspect': [a.width, height], 'rests': data}, open(a.quads, 'w'))
+        print('quads written', a.quads); return
     frames = [a.frame] if a.frame is not None else ([1 + F_OPEN + F_FLIP * 2 + 10] if a.test else list(range(a.start, a.end + 1)))
     print('total frames in sequence:', TOTAL, '| rendering', len(frames), flush=True)
     for f in frames:
