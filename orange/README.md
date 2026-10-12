@@ -1,24 +1,10 @@
-# Abricot: orange skincare landing page
+# Abricot (orange scroll site)
 
-A scroll-driven product site in the style of the reference reel: a jar in a peony that you
-scroll through (the flower, the jar rising, the lid lifting, back into the flower), then the
-product line, then a footer. Orange theme. Works on laptops and phones.
+One scroll-scrubbed film: `film/film.mp4` (laptop, 1280x720) and `film/film-m.mp4` (phone, centre crop 540x720), with `.webm` fallbacks.
+Scrolling plays the clip forwards (bud opens, jar rises, lid lifts, jar settles back into the flower); scrolling up plays it back.
 
-```
-index.html          the whole site (styles, copy, scroll film)
-img/*.webp          the four film shots (and -m versions for phones) and four product photos
-vendor/             GSAP + ScrollTrigger (scroll), Lenis (smooth scrolling)
-```
-
-## Easy changes
-- **Colours**: the `:root` block at the top of `index.html`. `--accent` is the orange.
-- **Brand name and copy**: search for `ABRICOT` and edit the text in the chapters and cards.
-- **Prices**: the `Add to bag · $128` buttons and the `.price` in each card.
-- **The film**: the `SHOTS` list. Each shot says which image, which part of the scroll it covers,
-  where the jar is in the photo (`s`) and how far to zoom (`z`) and where on screen the jar sits (`p`),
-  for laptops (`a` → `b`) and phones (`ma` → `mb`). `CHAPTERS` sets when each text panel shows.
-
-## Swapping in real motion
-The shots are AI-generated keyframes (GPT Image 2.5 via Higgsfield). Once Higgsfield video
-generation is available again, generate start→end clips between consecutive shots, export
-them as frames and replace the crossfades with a frame-sequence player.
+- To swap the film: re-encode with a keyframe every 2 frames (`-g 2`) so seeking is instant, e.g.
+  `ffmpeg -i clip.mp4 -an -vf scale=1280:720 -c:v libx264 -crf 24 -g 2 -keyint_min 2 -sc_threshold 0 -pix_fmt yuv420p -movflags +faststart film/film.mp4`
+- `CHAPTERS` in index.html: when each text panel shows (0..1 of the film).
+- `SB`: the film's background colour over time (the page around the video follows it).
+- Theme colours are the `:root` tokens at the top of index.html.

@@ -5,24 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Abricot | Apricot Peony Cream</title>
 <meta name="description" content="Abricot: one jar of whipped apricot peony cream, picked at dawn. Hydrates, softens and protects.">
-<meta name="theme-color" content="#F3DECD">
+<meta name="theme-color" content="#FFF4E6">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="img/bloom.webp" media="(min-width: 761px)">
-<link rel="preload" as="image" href="img/bloom-m.webp" media="(max-width: 760px)">
+<link rel="preload" as="image" href="film/poster.jpg">
 <style>
 /* =====================================================================
    THEME — change the orange here and the whole site follows
    ===================================================================== */
 :root{
-  --bg:#F3DECD;          /* page background: warm peach, matched to the photographs */
-  --bg-deep:#EDD2BE;
+  --bg:#FFF4E6;          /* page background: the cream the film ends on */
+  --bg-deep:#FBE3CE;
   --ink:#2A1A12;         /* text */
   --muted:#7E6455;
   --accent:#E8742A;      /* the orange: buttons, badges, highlights */
   --accent-deep:#C2551A;
   --accent-soft:#FBD9C1;
-  --card:#FAEFE6;
+  --card:#FFF9F2;
+  --lilac:#C3A8C2;       /* the film opens on lilac and warms to cream */
   --serif:'Cormorant Garamond',Georgia,serif;
   --sans:'Inter',system-ui,-apple-system,sans-serif;
 }
@@ -57,9 +57,9 @@ a{color:inherit;text-decoration:none}
 
 /* ---------- the story: a sticky stage, text chapters scroll over it ---------- */
 .story{position:relative;height:640vh}
-.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
-#film{position:absolute;inset:0;width:100%;height:100%;display:block}
-.stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(243,222,205,.78) 0%,rgba(243,222,205,.35) 30%,rgba(243,222,205,0) 50%)}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--sb,var(--lilac))}   /* --sb follows the film's background colour */
+.reel{position:absolute;top:0;bottom:0;left:15%;right:0;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24%);mask-image:linear-gradient(90deg,transparent 0,#000 24%)}
+#film{width:100%;height:100%;object-fit:cover;display:block;background:transparent}
 .chapter{position:absolute;left:clamp(24px,6vw,96px);top:50%;width:min(430px,40vw);transform:translateY(-50%);z-index:2;opacity:0;pointer-events:none}
 .chapter.on{pointer-events:auto}
 .eyebrow{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:10px}
@@ -73,6 +73,7 @@ h1 em,h2 em{font-style:italic;color:var(--accent-deep)}
 .jobs{list-style:none;margin-top:26px;display:grid;gap:16px}
 .jobs li{display:grid;grid-template-columns:28px 1fr;gap:4px 12px;font-size:14px;line-height:1.55;color:var(--muted)}
 .jobs li span{font-family:var(--serif);font-size:22px;color:var(--accent);line-height:1}
+.jobs li small{display:block;font-size:inherit}
 .jobs li strong{display:block;color:var(--ink);font-weight:500;font-size:15px}
 .scrollcue{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
 .scrollcue i{width:1px;height:38px;background:linear-gradient(var(--accent),transparent);animation:cue 1.8s ease-in-out infinite}
@@ -124,11 +125,11 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
   .nav nav{display:none}
   .brand{font-size:13px}
   .shopline{display:none}
-  .stage::after{background:linear-gradient(180deg,rgba(243,222,205,.95) 0%,rgba(243,222,205,.6) 34%,rgba(243,222,205,0) 52%)}
+  .reel{left:0;top:auto;height:62svh;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 22%);mask-image:linear-gradient(180deg,transparent 0,#000 22%)}
   .chapter{left:22px;right:22px;width:auto;top:96px;transform:none}
   h1{font-size:44px}h2{font-size:38px}
   .lede{font-size:14px;margin-top:14px}
-  .jobs{margin-top:16px;gap:10px}.jobs li{font-size:13px}
+  .jobs{margin-top:14px;gap:8px}.jobs li{font-size:13px}.jobs li small{display:none}
   .actions{margin-top:20px}
   .progress{display:none}
   .grid{grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
@@ -156,7 +157,7 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
 <main id="top">
   <section class="story" id="story">
     <div class="stage">
-      <canvas id="film" aria-hidden="true"></canvas>
+      <div class="reel"><video id="film" muted playsinline preload="auto" poster="film/poster.jpg" aria-hidden="true"></video></div>
 
       <div class="chapter" data-ch="0">
         <p class="eyebrow">Apricot skincare · First harvest</p>
@@ -173,9 +174,9 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
         <p class="eyebrow">The cream</p>
         <h2>One jar,<br><em>three jobs.</em></h2>
         <ul class="jobs">
-          <li><span>1</span><div><strong>All-day hydration</strong>Peony extract and squalane hold water in the skin from morning to night.</div></li>
-          <li><span>2</span><div><strong>Softens the surface</strong>Apricot kernel oil smooths texture without any heaviness.</div></li>
-          <li><span>3</span><div><strong>A calm barrier</strong>Ceramides protect against wind, heating and city air.</div></li>
+          <li><span>1</span><div><strong>All-day hydration</strong><small>Peony extract and squalane hold water in the skin from morning to night.</small></div></li>
+          <li><span>2</span><div><strong>Softens the surface</strong><small>Apricot kernel oil smooths texture without any heaviness.</small></div></li>
+          <li><span>3</span><div><strong>A calm barrier</strong><small>Ceramides protect against wind, heating and city air.</small></div></li>
         </ul>
       </div>
       <div class="chapter" data-ch="3">
@@ -185,7 +186,14 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
         <div class="actions"><button class="btn lg" data-add="Bloom Cream">Add to bag · $128</button></div>
       </div>
 
-      <div class="progress" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="chapter" data-ch="4">
+        <p class="eyebrow">Abricot</p>
+        <h2>Back to<br><em>the bloom.</em></h2>
+        <p class="lede">One jar, refillable, from a flower you can still smell. Meet the whole line.</p>
+        <div class="actions"><a class="btn lg" href="#line">Shop the line</a></div>
+      </div>
+
+      <div class="progress" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
       <div class="scrollcue" id="cue">Scroll<i></i></div>
     </div>
   </section>
@@ -218,81 +226,45 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
 <script src="vendor/lenis.min.js"></script>
 <script>
 /* =====================================================================
-   SHOTS — the scroll film. Each shot is an image with a start and end
-   framing; scrolling moves between them and crossfades to the next shot.
-   scale: zoom (1 = cover the screen); x, y: where the image sits (0..1 of its overflow);
-   from/to: the part of the story scroll it covers (0..1). To use a real video later,
-   export it as frames and swap SHOTS for a frame list (see README).
+   THE FILM — one video (film/film.mp4), played by the scroll. Scrolling down
+   plays it forwards, scrolling up plays it back: the bud opens, the jar rises
+   out, the lid lifts, the jar settles back into the flower.
+   CHAPTERS: when each text panel is on screen (0..1 of the film).
+   SB: the film's background colour over time, so the page around it matches.
    ===================================================================== */
-const SHOTS = [
-  // img; s: the jar's position in the image (0..1); a → b: zoom and where the jar sits on screen, laptop and phone
-  { img: 'bloom', from: 0.00, to: 0.26, s: [0.60, 0.50],
-    a: { z: 1.2, p: [0.63, 0.6] },   b: { z: 2.0, p: [0.64, 0.58] },           // we drift in towards the jar in the flower
-    ma: { z: 1.45, p: [0.5, 0.7] },  mb: { z: 2.1, p: [0.5, 0.72] } },
-  { img: 'rise',  from: 0.20, to: 0.48, s: [0.50, 0.40],
-    a: { z: 1.3, p: [0.64, 0.62] },  b: { z: 1.35, p: [0.64, 0.48] },          // the jar lifts out of the flower
-    ma: { z: 1.55, p: [0.5, 0.72] },  mb: { z: 1.6, p: [0.5, 0.66] } },
-  { img: 'open',  from: 0.42, to: 0.76, s: [0.50, 0.60],
-    a: { z: 1.32, p: [0.64, 0.48] }, b: { z: 1.45, p: [0.64, 0.52] },          // the lid comes off, push in on the cream
-    ma: { z: 1.55, p: [0.5, 0.68] },  mb: { z: 1.8, p: [0.5, 0.68] } },
-  { img: 'rest',  from: 0.70, to: 1.00, s: [0.64, 0.43],
-    a: { z: 2.4, p: [0.64, 0.50] },  b: { z: 1.08, p: [0.66, 0.55] },          // back into the flower, pulling out
-    ma: { z: 2.6, p: [0.5, 0.68] },  mb: { z: 1.5, p: [0.5, 0.70] } },
-];
-const CHAPTERS = [[0.0, 0.17], [0.24, 0.42], [0.47, 0.66], [0.72, 0.92]];   // when each text panel is on screen
-const XFADE = 0.05;   // how long the crossfades between shots last
+const CHAPTERS = [[0.0, 0.12], [0.33, 0.44], [0.46, 0.58], [0.60, 0.75], [0.79, 0.97]];
+const SB = [[0, [195,168,194]], [0.06, [200,175,197]], [0.14, [211,187,195]], [0.22, [229,204,193]], [0.32, [255,244,232]], [1, [255,244,230]]];
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const portraitMode = () => innerWidth < innerHeight || innerWidth <= 760;
-let mobile = portraitMode();
-const canvas = document.getElementById('film'), g = canvas.getContext('2d');
-const BG = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#F3DECD';
-const imgs = {};
-/* on phones the photograph sits in the lower part of the screen: its edges are feathered into the page once, at load */
-function feather(im) {
-  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d');
-  x.drawImage(im, 0, 0); x.globalCompositeOperation = 'destination-in';
-  const v = x.createLinearGradient(0, 0, 0, c.height); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.16, '#000'); v.addColorStop(0.86, '#000'); v.addColorStop(1, 'rgba(0,0,0,0)');
-  x.fillStyle = v; x.fillRect(0, 0, c.width, c.height);
-  x.globalCompositeOperation = 'destination-in';
-  const hz = x.createLinearGradient(0, 0, c.width, 0); hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(0.08, '#000'); hz.addColorStop(0.92, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)');
-  x.fillStyle = hz; x.fillRect(0, 0, c.width, c.height);
-  return c;
-}
-const load = (n) => new Promise((res) => {
-  const i = new Image(); i.decoding = 'async';
-  i.onload = () => { imgs[n] = mobile ? feather(i) : i; res(); }; i.onerror = () => res();
-  i.src = `img/${n}${mobile ? '-m' : ''}.webp`;
-});
-
-function size() {
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
-}
-const lerp = (a, b, t) => a + (b - a) * t;
-const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const mobile = portraitMode();
+const video = document.getElementById('film'), stage = document.querySelector('.stage');
 const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
-function drawShot(s, t, alpha) {
-  const im = imgs[s.img]; if (!im || !im.width || alpha <= 0) return;
-  const W = canvas.width, H = canvas.height, k = ease(t), A = mobile ? s.ma : s.a, B = mobile ? s.mb : s.b;
-  const z = lerp(A.z, B.z, k), px = lerp(A.p[0], B.p[0], k) * W, py = lerp(A.p[1], B.p[1], k) * H;
-  const base = mobile ? W / im.width : Math.max(W / im.width, H / im.height);   // laptops: cover the screen; phones: fit the width
-  const dw = im.width * base * z, dh = im.height * base * z;
-  let x = px - s.s[0] * dw, y = py - s.s[1] * dh;
-  if (!mobile) { x = Math.min(0, Math.max(W - dw, x)); y = Math.min(0, Math.max(H - dh, y)); }   // never show an edge
-  g.globalAlpha = alpha;
-  g.drawImage(im, x, y, dw, dh);
+function stageColour(p) {
+  let i = 0; while (i < SB.length - 2 && p > SB[i + 1][0]) i++;
+  const [p0, c0] = SB[i], [p1, c1] = SB[i + 1], t = Math.min(1, Math.max(0, (p - p0) / (p1 - p0)));
+  return `rgb(${c0.map((v, k) => Math.round(v + (c1[k] - v) * t)).join(',')})`;
 }
-let progress = 0;
+
+/* download the film into memory first, so every seek is instant */
+async function loadFilm() {
+  const mp4 = video.canPlayType('video/mp4; codecs="avc1.42E01E"'), ext = mp4 ? 'mp4' : 'webm', url = `film/film${mobile ? '-m' : ''}.${ext}`;
+  const bar = document.getElementById('loadbar');
+  try {
+    const res = await fetch(url), total = +res.headers.get('content-length') || 0, rd = res.body.getReader(), parts = []; let got = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; if (total) bar.style.width = `${Math.min(100, got / total * 100)}%`; }
+    video.src = URL.createObjectURL(new Blob(parts, { type: `video/${ext}` }));
+  } catch (e) { video.src = url; }
+  await new Promise((r) => { if (video.readyState >= 2) return r(); video.addEventListener('loadeddata', r, { once: true }); setTimeout(r, 8000); });
+  video.pause(); bar.style.width = '100%';
+}
+let progress = 0, shown = 0;
 function render() {
-  g.globalAlpha = 1; g.fillStyle = BG; g.fillRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < SHOTS.length; i++) {
-    const s = SHOTS[i], t = Math.min(1, Math.max(0, (progress - s.from) / (s.to - s.from)));
-    const next = SHOTS[i + 1];
-    const fadeIn = i === 0 ? 1 : smooth(s.from, s.from + XFADE, progress);   // the new shot fades in over the old one,
-    const fadeOut = next ? 1 - smooth(next.from + XFADE, next.from + XFADE * 1.4, progress) : 1;   // which drops out once it's covered
-    drawShot(s, t, Math.min(fadeIn, fadeOut));
-  }
+  const dur = video.duration; if (!dur || !isFinite(dur)) return;
+  shown += (progress - shown) * 0.35; if (Math.abs(progress - shown) < 0.0004) shown = progress;
+  const t = Math.min(dur - 0.04, shown * dur);
+  if (Math.abs(video.currentTime - t) > 0.012 && (!video.seeking || Math.abs(video.currentTime - t) > 0.2)) video.currentTime = t;
+  stage.style.setProperty('--sb', stageColour(shown));
 }
 
 /* text chapters fade and drift as the film plays */
@@ -320,9 +292,7 @@ document.addEventListener('click', (e) => {
 });
 
 async function boot() {
-  size();
-  mobile = portraitMode(); const names = [...new Set(SHOTS.map(s => s.img))]; let done = 0;
-  await Promise.all(names.map(n => load(n).then(() => { document.getElementById('loadbar').style.width = `${(++done / names.length) * 100}%`; })));
+  await loadFilm();
   gsap.registerPlugin(ScrollTrigger);
   const lenis = new Lenis({ lerp: 0.085, smoothWheel: true });
   lenis.on('scroll', ScrollTrigger.update);
@@ -345,7 +315,7 @@ async function boot() {
   gsap.from('.chapter[data-ch="0"] > *', { y: 26, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: 0.09, delay: 0.25 });
   gsap.from('.nav', { y: -20, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.1 });
 }
-addEventListener('resize', () => { const m = portraitMode(); size(); if (m !== mobile) location.reload(); else render(); });
+addEventListener('resize', () => { if (portraitMode() !== mobile) location.reload(); });
 boot();
 </script>
 </body>
