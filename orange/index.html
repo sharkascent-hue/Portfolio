@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Abricot | Apricot Peony Cream</title>
+<meta name="description" content="Abricot: one jar of whipped apricot peony cream, picked at dawn. Hydrates, softens and protects.">
+<meta name="theme-color" content="#F3DECD">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="img/bloom.webp" media="(min-width: 761px)">
+<link rel="preload" as="image" href="img/bloom-m.webp" media="(max-width: 760px)">
+<style>
+/* =====================================================================
+   THEME — change the orange here and the whole site follows
+   ===================================================================== */
+:root{
+  --bg:#F3DECD;          /* page background: warm peach, matched to the photographs */
+  --bg-deep:#EDD2BE;
+  --ink:#2A1A12;         /* text */
+  --muted:#7E6455;
+  --accent:#E8742A;      /* the orange: buttons, badges, highlights */
+  --accent-deep:#C2551A;
+  --accent-soft:#FBD9C1;
+  --card:#FAEFE6;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+a{color:inherit;text-decoration:none}
+
+/* ---------- nav ---------- */
+.nav{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:26px;
+  padding:9px 9px 9px 24px;border-radius:999px;background:rgba(251,244,238,.72);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);
+  box-shadow:0 0 0 1px rgba(42,26,18,.06),0 10px 40px rgba(120,60,20,.08)}
+.brand{font-family:var(--serif);font-size:15px;letter-spacing:.32em;font-weight:500}
+.nav nav{display:flex;gap:22px;font-size:12.5px;color:var(--muted)}
+.nav nav a{transition:color .2s}.nav nav a:hover{color:var(--ink)}
+.bag{position:relative;width:34px;height:34px;display:grid;place-items:center;border-radius:50%}
+.bag svg{width:18px;height:18px}
+.bag b{position:absolute;top:2px;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--accent);color:#fff;font:600 9.5px/16px var(--sans);text-align:center;transform:scale(0);transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.bag b.on{transform:scale(1)}
+.btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 18px;border-radius:999px;background:var(--accent);color:#fff;font-size:12.5px;font-weight:500;letter-spacing:.01em;
+  box-shadow:0 6px 18px rgba(232,116,42,.28);transition:background .25s,transform .25s}
+.btn:hover{background:var(--accent-deep);transform:translateY(-1px)}
+.btn.lg{height:44px;padding:0 22px;font-size:13.5px}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(42,26,18,.18)}
+.btn.ghost:hover{background:rgba(42,26,18,.05)}
+.shopline{position:fixed;left:24px;top:22px;z-index:49;opacity:0;pointer-events:none;transform:translateY(-8px);transition:opacity .4s,transform .4s}
+.shopline.on{opacity:1;pointer-events:auto;transform:none}
+
+/* ---------- the story: a sticky stage, text chapters scroll over it ---------- */
+.story{position:relative;height:640vh}
+.stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
+#film{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(243,222,205,.78) 0%,rgba(243,222,205,.35) 30%,rgba(243,222,205,0) 50%)}
+.chapter{position:absolute;left:clamp(24px,6vw,96px);top:50%;width:min(430px,40vw);transform:translateY(-50%);z-index:2;opacity:0;pointer-events:none}
+.chapter.on{pointer-events:auto}
+.eyebrow{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:22px;height:1px;background:var(--accent)}
+h1,h2{font-family:var(--serif);font-weight:400;line-height:.98;letter-spacing:-.01em}
+h1{font-size:clamp(48px,6.4vw,96px)}
+h2{font-size:clamp(40px,4.6vw,72px)}
+h1 em,h2 em{font-style:italic;color:var(--accent-deep)}
+.lede{margin-top:22px;font-size:15px;line-height:1.65;color:var(--muted);max-width:36ch}
+.actions{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+.jobs{list-style:none;margin-top:26px;display:grid;gap:16px}
+.jobs li{display:grid;grid-template-columns:28px 1fr;gap:4px 12px;font-size:14px;line-height:1.55;color:var(--muted)}
+.jobs li span{font-family:var(--serif);font-size:22px;color:var(--accent);line-height:1}
+.jobs li strong{display:block;color:var(--ink);font-weight:500;font-size:15px}
+.scrollcue{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:10px}
+.scrollcue i{width:1px;height:38px;background:linear-gradient(var(--accent),transparent);animation:cue 1.8s ease-in-out infinite}
+@keyframes cue{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+.progress{position:absolute;right:clamp(18px,3vw,40px);top:50%;transform:translateY(-50%);z-index:2;display:grid;gap:10px}
+.progress i{width:3px;height:22px;border-radius:2px;background:rgba(42,26,18,.14);overflow:hidden;position:relative}
+.progress i::after{content:"";position:absolute;inset:0;background:var(--accent);transform:scaleY(var(--p,0));transform-origin:top}
+
+/* ---------- the line ---------- */
+.line{position:relative;z-index:3;background:var(--bg);padding:clamp(80px,12vw,150px) clamp(20px,5vw,72px) 110px;text-align:center}
+.line h2 em{color:var(--accent-deep)}
+.line .lede{margin:18px auto 0;text-align:center}
+.grid{margin:60px auto 0;max-width:1240px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{background:var(--card);border-radius:22px;padding:14px 14px 20px;text-align:left;box-shadow:0 1px 0 rgba(42,26,18,.04),0 20px 50px rgba(150,80,30,.06);transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .45s}
+.card:hover{transform:translateY(-6px);box-shadow:0 1px 0 rgba(42,26,18,.04),0 30px 60px rgba(150,80,30,.12)}
+.card .ph{aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--bg-deep)}
+.card .ph img{width:100%;height:100%;object-fit:cover;transition:transform 1s cubic-bezier(.2,.8,.2,1)}
+.card:hover .ph img{transform:scale(1.05)}
+.card h3{margin:18px 4px 4px;font-family:var(--serif);font-size:24px;font-weight:500}
+.card p{margin:0 4px;font-size:13px;line-height:1.5;color:var(--muted);min-height:40px}
+.card .row{margin:16px 4px 0;display:flex;align-items:center;justify-content:space-between}
+.card .price{font-size:14px;font-weight:500}
+.card .btn{height:34px;padding:0 14px;font-size:12px}
+
+/* ---------- footer ---------- */
+footer{position:relative;z-index:3;background:var(--ink);color:#F3E4D8;padding:80px clamp(20px,5vw,72px) 40px}
+.foot{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:40px}
+footer h4{font-family:var(--serif);font-weight:400;font-size:clamp(34px,3.6vw,52px);line-height:1}
+footer h4 em{color:var(--accent)}
+footer form{margin-top:26px;display:flex;gap:8px;max-width:420px}
+footer input{flex:1;height:44px;border-radius:999px;border:1px solid rgba(243,228,216,.2);background:transparent;color:inherit;padding:0 18px;font:inherit;font-size:13.5px;outline:none}
+footer input:focus{border-color:var(--accent)}
+footer h5{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(243,228,216,.5);margin-bottom:16px;font-weight:500}
+footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,228,216,.8)}
+.fine{max-width:1240px;margin:70px auto 0;padding-top:24px;border-top:1px solid rgba(243,228,216,.12);display:flex;justify-content:space-between;font-size:12px;color:rgba(243,228,216,.45)}
+.fine .brand{color:#F3E4D8}
+
+/* ---------- loader ---------- */
+.loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:grid;place-items:center;transition:opacity .8s ease,visibility .8s}
+.loader.off{opacity:0;visibility:hidden}
+.loader div{width:120px;height:1px;background:rgba(42,26,18,.12);overflow:hidden}
+.loader div i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.toast{position:fixed;left:50%;bottom:26px;z-index:60;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:#fff;font-size:13px;padding:12px 18px;border-radius:999px;transition:.4s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- phones: text on top, the jar beneath ---------- */
+@media (max-width:760px){
+  .nav{top:12px;gap:12px;padding:7px 7px 7px 18px;width:calc(100% - 24px);justify-content:space-between}
+  .nav nav{display:none}
+  .brand{font-size:13px}
+  .shopline{display:none}
+  .stage::after{background:linear-gradient(180deg,rgba(243,222,205,.95) 0%,rgba(243,222,205,.6) 34%,rgba(243,222,205,0) 52%)}
+  .chapter{left:22px;right:22px;width:auto;top:96px;transform:none}
+  h1{font-size:44px}h2{font-size:38px}
+  .lede{font-size:14px;margin-top:14px}
+  .jobs{margin-top:16px;gap:10px}.jobs li{font-size:13px}
+  .actions{margin-top:20px}
+  .progress{display:none}
+  .grid{grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
+  .card{padding:10px 10px 16px;border-radius:18px}
+  .card h3{font-size:20px;margin-top:12px}
+  .card p{font-size:12px;min-height:54px}
+  .card .row{flex-direction:column;align-items:flex-start;gap:10px}
+  .foot{grid-template-columns:1fr 1fr}.foot>div:first-child{grid-column:1/-1}
+  .fine{flex-direction:column;gap:10px}
+}
+@media (prefers-reduced-motion:reduce){.scrollcue i{animation:none}}
+</style>
+</head>
+<body>
+<div class="loader" id="loader"><div><i id="loadbar"></i></div></div>
+
+<header class="nav">
+  <a class="brand" href="#top">ABRICOT</a>
+  <nav><a href="#flower">The flower</a><a href="#cream">The cream</a><a href="#line">The line</a></nav>
+  <button class="bag" aria-label="Bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><b id="bagCount">0</b></button>
+  <a class="btn" href="#line">Shop</a>
+</header>
+<a class="btn shopline" id="shopline" href="#line">Shop the line</a>
+
+<main id="top">
+  <section class="story" id="story">
+    <div class="stage">
+      <canvas id="film" aria-hidden="true"></canvas>
+
+      <div class="chapter" data-ch="0">
+        <p class="eyebrow">Apricot skincare · First harvest</p>
+        <h1>Apricot,<br><em>at first bloom.</em></h1>
+        <p class="lede">A whipped day cream made from orange peonies picked at sunrise, when the petals are fullest and the scent is still on them.</p>
+        <div class="actions"><button class="btn lg" data-add="Bloom Cream">Add to bag · $128</button><a class="btn lg ghost" href="#cream">The cream</a></div>
+      </div>
+      <div class="chapter" data-ch="1" id="flower">
+        <p class="eyebrow">The flower</p>
+        <h2>Picked at dawn,<br><em>when it's fullest.</em></h2>
+        <p class="lede">We pick our peonies early in the morning, while the petals are cool and still closed around their oils. We press them within the hour, so the cream smells like the field.</p>
+      </div>
+      <div class="chapter" data-ch="2" id="cream">
+        <p class="eyebrow">The cream</p>
+        <h2>One jar,<br><em>three jobs.</em></h2>
+        <ul class="jobs">
+          <li><span>1</span><div><strong>All-day hydration</strong>Peony extract and squalane hold water in the skin from morning to night.</div></li>
+          <li><span>2</span><div><strong>Softens the surface</strong>Apricot kernel oil smooths texture without any heaviness.</div></li>
+          <li><span>3</span><div><strong>A calm barrier</strong>Ceramides protect against wind, heating and city air.</div></li>
+        </ul>
+      </div>
+      <div class="chapter" data-ch="3">
+        <p class="eyebrow">The texture</p>
+        <h2>Whipped,<br><em>then it melts.</em></h2>
+        <p class="lede">It feels light when you pick it up. It sinks in as you warm it between your fingers, and leaves skin soft, never shiny.</p>
+        <div class="actions"><button class="btn lg" data-add="Bloom Cream">Add to bag · $128</button></div>
+      </div>
+
+      <div class="progress" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="scrollcue" id="cue">Scroll<i></i></div>
+    </div>
+  </section>
+
+  <section class="line" id="line">
+    <p class="eyebrow" style="justify-content:center">The line</p>
+    <h2>Four pieces, <em>one apricot.</em></h2>
+    <p class="lede">Every piece comes in the same heavy crystal jar with a black lacquer lid. Every one of them can be refilled.</p>
+    <div class="grid">
+      <article class="card"><div class="ph"><img src="img/p-dew.webp" alt="Dew Cream jar" loading="lazy"></div><h3>Dew Cream</h3><p>Light daily moisture for every skin type.</p><div class="row"><span class="price">$96</span><button class="btn" data-add="Dew Cream">Add to bag</button></div></article>
+      <article class="card"><div class="ph"><img src="img/p-whip.webp" alt="Whipped Cream jar, open" loading="lazy"></div><h3>Whipped Cream</h3><p>Our richest texture, for dry and tight skin.</p><div class="row"><span class="price">$128</span><button class="btn" data-add="Whipped Cream">Add to bag</button></div></article>
+      <article class="card"><div class="ph"><img src="img/p-bloom.webp" alt="Bloom gift set in a peony" loading="lazy"></div><h3>Bloom Set</h3><p>The cream and its refill, in a gift box.</p><div class="row"><span class="price">$184</span><button class="btn" data-add="Bloom Set">Add to bag</button></div></article>
+      <article class="card"><div class="ph"><img src="img/p-ritual.webp" alt="Night Ritual jar, open in a peony" loading="lazy"></div><h3>Night Ritual</h3><p>An overnight balm that works while you sleep.</p><div class="row"><span class="price">$112</span><button class="btn" data-add="Night Ritual">Add to bag</button></div></article>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="foot">
+    <div><h4>Be first to <em>the harvest.</em></h4><form onsubmit="event.preventDefault();toast('Thank you, you\'re on the list');this.reset()"><input type="email" required placeholder="Your email"><button class="btn">Join</button></form></div>
+    <div><h5>Shop</h5><ul><li>Dew Cream</li><li>Whipped Cream</li><li>Bloom Set</li><li>Night Ritual</li></ul></div>
+    <div><h5>House</h5><ul><li>Our fields</li><li>Refills</li><li>Shipping</li><li>Contact</li></ul></div>
+  </div>
+  <div class="fine"><span class="brand">ABRICOT</span><span>© 2026 Abricot. Made with orange peonies.</span></div>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/ScrollTrigger.min.js"></script>
+<script src="vendor/lenis.min.js"></script>
+<script>
+/* =====================================================================
+   SHOTS — the scroll film. Each shot is an image with a start and end
+   framing; scrolling moves between them and crossfades to the next shot.
+   scale: zoom (1 = cover the screen); x, y: where the image sits (0..1 of its overflow);
+   from/to: the part of the story scroll it covers (0..1). To use a real video later,
+   export it as frames and swap SHOTS for a frame list (see README).
+   ===================================================================== */
+const SHOTS = [
+  // img; s: the jar's position in the image (0..1); a → b: zoom and where the jar sits on screen, laptop and phone
+  { img: 'bloom', from: 0.00, to: 0.26, s: [0.60, 0.50],
+    a: { z: 1.2, p: [0.63, 0.6] },   b: { z: 2.0, p: [0.64, 0.58] },           // we drift in towards the jar in the flower
+    ma: { z: 1.45, p: [0.5, 0.7] },  mb: { z: 2.1, p: [0.5, 0.72] } },
+  { img: 'rise',  from: 0.20, to: 0.48, s: [0.50, 0.40],
+    a: { z: 1.3, p: [0.64, 0.62] },  b: { z: 1.35, p: [0.64, 0.48] },          // the jar lifts out of the flower
+    ma: { z: 1.55, p: [0.5, 0.72] },  mb: { z: 1.6, p: [0.5, 0.66] } },
+  { img: 'open',  from: 0.42, to: 0.76, s: [0.50, 0.60],
+    a: { z: 1.32, p: [0.64, 0.48] }, b: { z: 1.45, p: [0.64, 0.52] },          // the lid comes off, push in on the cream
+    ma: { z: 1.55, p: [0.5, 0.68] },  mb: { z: 1.8, p: [0.5, 0.68] } },
+  { img: 'rest',  from: 0.70, to: 1.00, s: [0.64, 0.43],
+    a: { z: 2.4, p: [0.64, 0.50] },  b: { z: 1.08, p: [0.66, 0.55] },          // back into the flower, pulling out
+    ma: { z: 2.6, p: [0.5, 0.68] },  mb: { z: 1.5, p: [0.5, 0.70] } },
+];
+const CHAPTERS = [[0.0, 0.17], [0.24, 0.42], [0.47, 0.66], [0.72, 0.92]];   // when each text panel is on screen
+const XFADE = 0.05;   // how long the crossfades between shots last
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const portraitMode = () => innerWidth < innerHeight || innerWidth <= 760;
+let mobile = portraitMode();
+const canvas = document.getElementById('film'), g = canvas.getContext('2d');
+const BG = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#F3DECD';
+const imgs = {};
+/* on phones the photograph sits in the lower part of the screen: its edges are feathered into the page once, at load */
+function feather(im) {
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d');
+  x.drawImage(im, 0, 0); x.globalCompositeOperation = 'destination-in';
+  const v = x.createLinearGradient(0, 0, 0, c.height); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.16, '#000'); v.addColorStop(0.86, '#000'); v.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = v; x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in';
+  const hz = x.createLinearGradient(0, 0, c.width, 0); hz.addColorStop(0, 'rgba(0,0,0,0)'); hz.addColorStop(0.08, '#000'); hz.addColorStop(0.92, '#000'); hz.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = hz; x.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+const load = (n) => new Promise((res) => {
+  const i = new Image(); i.decoding = 'async';
+  i.onload = () => { imgs[n] = mobile ? feather(i) : i; res(); }; i.onerror = () => res();
+  i.src = `img/${n}${mobile ? '-m' : ''}.webp`;
+});
+
+function size() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const smooth = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+function drawShot(s, t, alpha) {
+  const im = imgs[s.img]; if (!im || !im.width || alpha <= 0) return;
+  const W = canvas.width, H = canvas.height, k = ease(t), A = mobile ? s.ma : s.a, B = mobile ? s.mb : s.b;
+  const z = lerp(A.z, B.z, k), px = lerp(A.p[0], B.p[0], k) * W, py = lerp(A.p[1], B.p[1], k) * H;
+  const base = mobile ? W / im.width : Math.max(W / im.width, H / im.height);   // laptops: cover the screen; phones: fit the width
+  const dw = im.width * base * z, dh = im.height * base * z;
+  let x = px - s.s[0] * dw, y = py - s.s[1] * dh;
+  if (!mobile) { x = Math.min(0, Math.max(W - dw, x)); y = Math.min(0, Math.max(H - dh, y)); }   // never show an edge
+  g.globalAlpha = alpha;
+  g.drawImage(im, x, y, dw, dh);
+}
+let progress = 0;
+function render() {
+  g.globalAlpha = 1; g.fillStyle = BG; g.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < SHOTS.length; i++) {
+    const s = SHOTS[i], t = Math.min(1, Math.max(0, (progress - s.from) / (s.to - s.from)));
+    const next = SHOTS[i + 1];
+    const fadeIn = i === 0 ? 1 : smooth(s.from, s.from + XFADE, progress);   // the new shot fades in over the old one,
+    const fadeOut = next ? 1 - smooth(next.from + XFADE, next.from + XFADE * 1.4, progress) : 1;   // which drops out once it's covered
+    drawShot(s, t, Math.min(fadeIn, fadeOut));
+  }
+}
+
+/* text chapters fade and drift as the film plays */
+const chapters = [...document.querySelectorAll('.chapter')], bars = [...document.querySelectorAll('.progress i')];
+function chapterState() {
+  chapters.forEach((el, i) => {
+    const [a, b] = CHAPTERS[i], f = 0.04;
+    const v = i === 0 ? 1 - smooth(b - f, b, progress) : smooth(a, a + f, progress) * (1 - smooth(b - f, b, progress));
+    el.style.opacity = v.toFixed(3);
+    el.style.translate = `0 ${((1 - v) * (progress < a + f ? 24 : -24)).toFixed(1)}px`;
+    el.classList.toggle('on', v > 0.5);
+    bars[i]?.style.setProperty('--p', Math.min(1, Math.max(0, (progress - a) / (b - a))).toFixed(3));
+  });
+  document.getElementById('cue').style.opacity = (1 - smooth(0.0, 0.04, progress)).toFixed(3);
+  document.getElementById('shopline').classList.toggle('on', progress > 0.12);
+}
+
+/* bag + toast */
+let bag = 0;
+function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2200); }
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-add]'); if (!b) return;
+  bag++; const c = document.getElementById('bagCount'); c.textContent = bag; c.classList.remove('on'); void c.offsetWidth; c.classList.add('on');
+  toast(`${b.dataset.add} added to your bag`);
+});
+
+async function boot() {
+  size();
+  mobile = portraitMode(); const names = [...new Set(SHOTS.map(s => s.img))]; let done = 0;
+  await Promise.all(names.map(n => load(n).then(() => { document.getElementById('loadbar').style.width = `${(++done / names.length) * 100}%`; })));
+  gsap.registerPlugin(ScrollTrigger);
+  const lenis = new Lenis({ lerp: 0.085, smoothWheel: true });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((t) => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0);
+  document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', (e) => {
+    const id = a.getAttribute('href'); if (id.length < 2) return; e.preventDefault();
+    const story = document.getElementById('story'), top = story.offsetTop, len = story.offsetHeight - innerHeight;
+    const at = { '#top': 0, '#flower': CHAPTERS[1][0] + 0.06, '#cream': CHAPTERS[2][0] + 0.06 }[id];
+    lenis.scrollTo(at != null ? top + at * len : document.querySelector(id), { duration: 1.6 });
+  }));
+  ScrollTrigger.create({ trigger: '#story', start: 'top top', end: 'bottom bottom', scrub: reduce ? true : 0.6,
+    onUpdate: (st) => { progress = st.progress; } });
+  // the scrub above eases `progress`; draw every frame so the film is smooth
+  gsap.ticker.add(() => { render(); chapterState(); });
+  // cards rise in as the line scrolls into view
+  gsap.from('.card', { y: 60, opacity: 0, duration: 1, ease: 'power3.out', stagger: 0.1, scrollTrigger: { trigger: '.grid', start: 'top 85%' } });
+  gsap.from('.line h2, .line .lede, .line .eyebrow', { y: 30, opacity: 0, duration: 1, ease: 'power3.out', stagger: 0.08, scrollTrigger: { trigger: '.line', start: 'top 75%' } });
+  render(); chapterState();
+  document.getElementById('loader').classList.add('off');
+  gsap.from('.chapter[data-ch="0"] > *', { y: 26, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: 0.09, delay: 0.25 });
+  gsap.from('.nav', { y: -20, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.1 });
+}
+addEventListener('resize', () => { const m = portraitMode(); size(); if (m !== mobile) location.reload(); else render(); });
+boot();
+</script>
+</body>
+</html>
