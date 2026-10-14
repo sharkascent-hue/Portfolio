@@ -59,7 +59,8 @@ a{color:inherit;text-decoration:none}
 .story{position:relative;height:640vh}
 .stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--sb,var(--lilac))}   /* --sb follows the film's background colour */
 .reel{position:absolute;top:0;bottom:0;left:15%;right:0;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24%);mask-image:linear-gradient(90deg,transparent 0,#000 24%)}
-#film{width:100%;height:100%;object-fit:cover;display:block;background:transparent}
+#film,#filmc{width:100%;height:100%;object-fit:cover;display:block;background:transparent}
+#filmc{display:none}
 .chapter{position:absolute;left:clamp(24px,6vw,96px);top:50%;width:min(430px,40vw);transform:translateY(-50%);z-index:2;opacity:0;pointer-events:none}
 .chapter.on{pointer-events:auto}
 .eyebrow{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:10px}
@@ -125,12 +126,15 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
   .nav nav{display:none}
   .brand{font-size:13px}
   .shopline{display:none}
-  .reel{left:0;top:auto;height:62svh;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 22%);mask-image:linear-gradient(180deg,transparent 0,#000 22%)}
-  .chapter{left:22px;right:22px;width:auto;top:96px;transform:none}
-  h1{font-size:44px}h2{font-size:38px}
-  .lede{font-size:14px;margin-top:14px}
+  #film{display:none}#filmc{display:block}
+  .reel{left:0;top:auto;height:60svh;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 22%);mask-image:linear-gradient(180deg,transparent 0,#000 22%)}
+  .chapter{left:20px;right:20px;width:auto;top:80px;transform:none}
+  h1{font-size:36px}h2{font-size:32px}
+  .eyebrow{font-size:9.5px;margin-bottom:12px}
+  .lede{font-size:13px;line-height:1.55;margin-top:10px}
+  .btn.lg{height:40px;padding:0 18px;font-size:13px}
   .jobs{margin-top:14px;gap:8px}.jobs li{font-size:13px}.jobs li small{display:none}
-  .actions{margin-top:20px}
+  .actions{margin-top:16px;gap:8px}
   .progress{display:none}
   .grid{grid-template-columns:1fr 1fr;gap:12px;margin-top:40px}
   .card{padding:10px 10px 16px;border-radius:18px}
@@ -157,7 +161,7 @@ footer ul{list-style:none;display:grid;gap:10px;font-size:14px;color:rgba(243,22
 <main id="top">
   <section class="story" id="story">
     <div class="stage">
-      <div class="reel"><video id="film" muted playsinline preload="auto" poster="film/poster.jpg" aria-hidden="true"></video></div>
+      <div class="reel"><video id="film" muted playsinline preload="auto" poster="film/poster.jpg" aria-hidden="true"></video><canvas id="filmc" aria-hidden="true"></canvas></div>
 
       <div class="chapter" data-ch="0">
         <p class="eyebrow">Apricot skincare · First harvest</p>
@@ -246,10 +250,18 @@ function stageColour(p) {
   return `rgb(${c0.map((v, k) => Math.round(v + (c1[k] - v) * t)).join(',')})`;
 }
 
-/* download the film into memory first, so every seek is instant */
+/* laptops: the video is downloaded into memory first, so every seek is instant.
+   phones: iPhones can't scrub a video reliably, so a phone gets a few hundred small frames drawn on a canvas instead. */
+const FRAMES = 182, frames = [], cv = document.getElementById('filmc'), cx = cv.getContext('2d');
 async function loadFilm() {
-  const mp4 = video.canPlayType('video/mp4; codecs="avc1.42E01E"'), ext = mp4 ? 'mp4' : 'webm', url = `film/film${mobile ? '-m' : ''}.${ext}`;
   const bar = document.getElementById('loadbar');
+  if (mobile) {
+    let done = 0;
+    const get = async (i) => { try { const r = await fetch(`film/m/${String(i + 1).padStart(3, '0')}.webp`); frames[i] = await createImageBitmap(await r.blob()); } catch (e) {} bar.style.width = `${++done / FRAMES * 100}%`; };
+    const q = [...Array(FRAMES).keys()]; await Promise.all(Array.from({ length: 6 }, async () => { while (q.length) await get(q.shift()); }));
+    sizeCanvas(); return;
+  }
+  const mp4 = video.canPlayType('video/mp4; codecs="avc1.42E01E"'), ext = mp4 ? 'mp4' : 'webm', url = `film/film.${ext}`;
   try {
     const res = await fetch(url), total = +res.headers.get('content-length') || 0, rd = res.body.getReader(), parts = []; let got = 0;
     for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; if (total) bar.style.width = `${Math.min(100, got / total * 100)}%`; }
@@ -258,13 +270,29 @@ async function loadFilm() {
   await new Promise((r) => { if (video.readyState >= 2) return r(); video.addEventListener('loadeddata', r, { once: true }); setTimeout(r, 8000); });
   video.pause(); bar.style.width = '100%';
 }
+function sizeCanvas() { const d = Math.min(devicePixelRatio || 1, 2), r = cv.getBoundingClientRect(); cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); lastDrawn = -1; }
+let lastDrawn = -1;
+function drawFrame(pos) {   // nearest frame, no blending (blending two frames ghosts while the petals move)
+  const i = Math.min(FRAMES - 1, Math.max(0, Math.round(pos))), key = i + ':' + shown.toFixed(3);
+  if (i === lastDrawn && shown > 0.2) return; lastDrawn = i;
+  const W = cv.width, H = cv.height, im = frames[i] || frames[i - 1] || frames[i + 1]; if (!im) return;
+  // the first seconds show the whole closed bud (zoomed out, sitting on the bottom edge); it then zooms in to fill the area as the jar emerges
+  const z = smooth(0.0, 0.2, shown), kFit = W / (im.width * 0.84), kCover = Math.max(W / im.width, H / im.height), k = kFit + (kCover - kFit) * z, w = im.width * k, h = im.height * k, ctr = 0.49 + 0.06 * z;
+  cx.clearRect(0, 0, W, H);
+  cx.drawImage(im, W / 2 - ctr * w, H - h, w, h);
+  if (h < H) {   // melt the frame's top edge into the page
+    const top = H - h, fe = cx.createLinearGradient(0, top, 0, top + h * 0.25); fe.addColorStop(0, '#000'); fe.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.globalCompositeOperation = 'destination-out'; cx.fillStyle = fe; cx.fillRect(0, top, W, h * 0.25); cx.globalCompositeOperation = 'source-over';
+  }
+}
 let progress = 0, shown = 0;
 function render() {
-  const dur = video.duration; if (!dur || !isFinite(dur)) return;
   shown += (progress - shown) * 0.35; if (Math.abs(progress - shown) < 0.0004) shown = progress;
+  stage.style.setProperty('--sb', stageColour(shown));
+  if (mobile) return drawFrame(shown * (FRAMES - 1));
+  const dur = video.duration; if (!dur || !isFinite(dur)) return;
   const t = Math.min(dur - 0.04, shown * dur);
   if (Math.abs(video.currentTime - t) > 0.012 && (!video.seeking || Math.abs(video.currentTime - t) > 0.2)) video.currentTime = t;
-  stage.style.setProperty('--sb', stageColour(shown));
 }
 
 /* text chapters fade and drift as the film plays */
@@ -294,7 +322,7 @@ document.addEventListener('click', (e) => {
 async function boot() {
   await loadFilm();
   gsap.registerPlugin(ScrollTrigger);
-  const lenis = new Lenis({ lerp: 0.085, smoothWheel: true });
+  const lenis = new Lenis({ lerp: 0.085, smoothWheel: true, syncTouch: false });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0);
   document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', (e) => {
@@ -315,7 +343,8 @@ async function boot() {
   gsap.from('.chapter[data-ch="0"] > *', { y: 26, opacity: 0, duration: 1.1, ease: 'power3.out', stagger: 0.09, delay: 0.25 });
   gsap.from('.nav', { y: -20, opacity: 0, duration: 1, ease: 'power3.out', delay: 0.1 });
 }
-addEventListener('resize', () => { if (portraitMode() !== mobile) location.reload(); });
+let rw = innerWidth;
+addEventListener('resize', () => { if (portraitMode() !== mobile) return location.reload(); if (mobile && innerWidth !== rw) { rw = innerWidth; sizeCanvas(); } });   // phone address-bar show/hide changes only the height: ignore it
 boot();
 </script>
 </body>
